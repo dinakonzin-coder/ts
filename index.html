@@ -1,40 +1,68 @@
-
 <!DOCTYPE html>
 <html lang="km">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ប្រព័ន្ធគ្រប់គ្រងគ្លីនិកធ្មេញ - Dental Clinic Management POS</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Khmer language (Kantumruy Pro) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
+    <!-- React & Babel CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
         body {
             font-family: 'Kantumruy Pro', sans-serif;
             background-color: #f8fafc;
         }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
 
+        /* PRINT STYLES FOR POS THERMAL RECEIPT (80mm) */
         @media print {
-            body * { visibility: hidden; }
-            .pos-printable-area, .pos-printable-area * { visibility: visible; }
-            .pos-printable-area {
-                position: absolute; left: 0; top: 0;
-                width: 80mm !important; max-width: 80mm !important;
-                margin: 0 auto; padding: 4mm;
-                background: #ffffff !important; color: #000000 !important;
-                font-size: 11px !important;
-                box-shadow: none !important; border: none !important;
+            body * {
+                visibility: hidden;
             }
-            .no-print { display: none !important; }
+            .pos-printable-area, .pos-printable-area * {
+                visibility: visible;
+            }
+            .pos-printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm !important;
+                max-width: 80mm !important;
+                margin: 0 auto;
+                padding: 4mm;
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11px !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -44,65 +72,18 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        const ICONS = {
-            'activity': '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
-            'users': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-            'calendar': '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-            'layers': '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
-            'settings': '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
-            'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>',
-            'search': '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
-            'list': '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
-            'eye': '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
-            'printer': '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
-            'trash-2': '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
-            'trash': '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
-            'user': '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-            'receipt': '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
-            'wallet': '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
-            'alert-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-            'check-circle-2': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
-            'check-circle': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
-            'dollar-sign': '<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
-            'folder-open': '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"/>',
-            'calendar-plus': '<path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="19" y1="16" x2="19" y2="22"/><line x1="16" y1="19" x2="22" y2="19"/>',
-            'x': '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
-            'plus-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
-            'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-            'calendar-days': '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
-            'calendar-x': '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="10" y1="14" x2="14" y2="18"/><line x1="14" y1="14" x2="10" y2="18"/>',
-            'plus': '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
-            'edit': '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
-            'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>'
-        };
-
-        function Icon({ name, className = "w-5 h-5" }) {
-            const content = ICONS[name];
-            if (!content) return null;
-            return (
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={className}
-                    dangerouslySetInnerHTML={{ __html: content }}
-                />
-            );
-        }
-
+        // Tooth numbering array (Permanent Teeth 11-18, 21-28, 31-38, 41-48)
         const UPPER_TEETH_RIGHT = [18, 17, 16, 15, 14, 13, 12, 11];
         const UPPER_TEETH_LEFT = [21, 22, 23, 24, 25, 26, 27, 28];
         const LOWER_TEETH_LEFT = [31, 32, 33, 34, 35, 36, 37, 38];
         const LOWER_TEETH_RIGHT = [48, 47, 46, 45, 44, 43, 42, 41];
 
+        // Format Currency (USD helper)
         const formatMoney = (amount) => {
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
         };
 
+        // Format Date to Khmer localized display
         const formatDate = (dateStr) => {
             if (!dateStr) return '';
             const d = new Date(dateStr);
@@ -110,8 +91,10 @@
             return d.toLocaleDateString('km-KH', { year: 'numeric', month: 'short', day: 'numeric' });
         };
 
+        // Get today's ISO date string (YYYY-MM-DD)
         const getTodayIso = () => new Date().toISOString().split('T')[0];
 
+        // Default Clinic Information Configuration
         const INITIAL_CLINIC_INFO = {
             name: "គ្លីនិកធ្មេញ ឡុង ហៃសេង",
             subtitle: "គុណភាព សុភ័ណភាព និងអនាម័យ",
@@ -120,6 +103,7 @@
             footerNote: "សូមអរគុណចំពោះការគាំទ្រ! សូមជូនពរសុខភាពល្អ និងស្នាមញញឹមស្រស់ថ្លា!"
         };
 
+        // Default Service Catalog List (Predefined Services)
         const INITIAL_PRESET_SERVICES = [
             { id: "cat-1", name: "ប៉ះធ្មេញ (Composite Fillings)", price: 50 },
             { id: "cat-2", name: "ដកធ្មេញ (Tooth Extraction)", price: 30 },
@@ -131,6 +115,7 @@
             { id: "cat-8", name: "ដាំធ្មេញ (Dental Implant)", price: 800 }
         ];
 
+        // Initial sample patients data
         const INITIAL_PATIENTS = [
             {
                 id: "P-1001",
@@ -193,22 +178,27 @@
             }
         ];
 
+        // Reusable Tooth Selector Box with EXACTLY TWO ROWS & HORIZONTAL SCROLL
         function ToothSelector({ selectedTeeth = [], onToggleTooth, label }) {
             return (
                 <div class="space-y-1">
                     {label && <label class="block text-[11px] font-semibold text-slate-600 mb-1">{label}</label>}
                     <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm overflow-x-auto max-w-full">
                         <div class="min-w-max flex flex-col items-center gap-2">
+                            {/* Row 1: Upper Jaw (18 - 11 | 21 - 28) */}
                             <div class="flex items-center gap-1 flex-nowrap">
                                 <span class="text-[10px] font-bold text-slate-400 mr-1 w-8 text-right">លើ:</span>
                                 <div class="flex items-center gap-1">
                                     {UPPER_TEETH_RIGHT.map(t => {
                                         const isSelected = selectedTeeth.includes(t);
                                         return (
-                                            <button type="button" key={t} onClick={() => onToggleTooth(t)}
+                                            <button 
+                                                type="button" 
+                                                key={t}
+                                                onClick={() => onToggleTooth(t)}
                                                 class={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center border cursor-pointer ${
-                                                    isSelected
-                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105'
+                                                    isSelected 
+                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105' 
                                                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50'
                                                 }`}>
                                                 {t}
@@ -221,10 +211,13 @@
                                     {UPPER_TEETH_LEFT.map(t => {
                                         const isSelected = selectedTeeth.includes(t);
                                         return (
-                                            <button type="button" key={t} onClick={() => onToggleTooth(t)}
+                                            <button 
+                                                type="button" 
+                                                key={t}
+                                                onClick={() => onToggleTooth(t)}
                                                 class={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center border cursor-pointer ${
-                                                    isSelected
-                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105'
+                                                    isSelected 
+                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105' 
                                                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50'
                                                 }`}>
                                                 {t}
@@ -234,18 +227,23 @@
                                 </div>
                             </div>
 
+                            {/* Divider line between Upper & Lower Teeth */}
                             <div class="w-full border-t border-slate-200 my-0.5"></div>
 
+                            {/* Row 2: Lower Jaw (48 - 41 | 31 - 38) */}
                             <div class="flex items-center gap-1 flex-nowrap">
                                 <span class="text-[10px] font-bold text-slate-400 mr-1 w-8 text-right">ក្រោម:</span>
                                 <div class="flex items-center gap-1">
                                     {LOWER_TEETH_RIGHT.map(t => {
                                         const isSelected = selectedTeeth.includes(t);
                                         return (
-                                            <button type="button" key={t} onClick={() => onToggleTooth(t)}
+                                            <button 
+                                                type="button" 
+                                                key={t}
+                                                onClick={() => onToggleTooth(t)}
                                                 class={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center border cursor-pointer ${
-                                                    isSelected
-                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105'
+                                                    isSelected 
+                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105' 
                                                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50'
                                                 }`}>
                                                 {t}
@@ -258,57 +256,66 @@
                                     {LOWER_TEETH_LEFT.map(t => {
                                         const isSelected = selectedTeeth.includes(t);
                                         return (
-                                            <button type="button" key={t} onClick={() => onToggleTooth(t)}
+                                            <button 
+                                                type="button" 
+                                                key={t}
+                                                onClick={() => onToggleTooth(t)}
                                                 class={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center border cursor-pointer ${
-                                                    isSelected
-                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105'
+                                                    isSelected 
+                                                        ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105' 
                                                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50'
                                                 }`}>
                                                 {t}
                                             </button>
                                         );
                                     })}
-                                </div =>
+                                </div>
                             </div>
                         </div>
-                    useState </div>
-                    <p class="text(null-[11px);
-] text-teal           -700 mt-1 font-semibold">
-                        ធ្មេញ constជ្រើសរើស: {selectedTeeth.length > 0 ? selectedTeeth.slice().sort((a,b)=>a-b).join(', ') : 'គ្មាន (ជ្រើសរើសទាំងអស់ ឬ ទូទៅ)'}
+                    </div>
+                    <p class="text-[11px] text-teal-700 mt-1 font-semibold">
+                        ធ្មេញជ្រើសរើស: {selectedTeeth.length > 0 ? selectedTeeth.slice().sort((a,b)=>a-b).join(', ') : 'គ្មាន (ជ្រើសរើសទាំងអស់ ឬ ទូទៅ)'}
                     </p>
                 </div>
             );
         }
 
         function App() {
+            // Clinic Information State
             const [clinicInfo, setClinicInfo] = useState(() => {
                 const savedInfo = localStorage.getItem('dental_clinic_info');
                 return savedInfo ? JSON.parse(savedInfo) : INITIAL_CLINIC_INFO;
             });
 
+            // Service Catalog / Preset Services State
             const [presetServices, setPresetServices] = useState(() => {
                 const saved = localStorage.getItem('dental_preset_services');
                 return saved ? JSON.parse(saved) : INITIAL_PRESET_SERVICES;
             });
 
+            // Patients List State
             const [patients, setPatients] = useState(() => {
                 const saved = localStorage.getItem('dental_patients_data');
                 return saved ? JSON.parse(saved) : INITIAL_PATIENTS;
             });
 
+            // Navigation State: 'patients' or 'appointments'
             const [currentView, setCurrentView] = useState("patients");
+
             const [searchTerm, setSearchTerm] = useState("");
             const [filterStatus, setFilterStatus] = useState("all");
-            const [dateFilterMode, setDateFilterMode] = useState("today");
+            const [dateFilterMode, setDateFilterMode] = useState("all");
             const [filterDate, setFilterDate] = useState(getTodayIso());
-
-            const [selectedPatient, setSelectedPatient] [posPatient, setPosPatient] = useState(null);
+            
+            // Selected Patient Modal / Form Drawer State
+            const [selectedPatient, setSelectedPatient] = useState(null);
+            const [posPatient, setPosPatient] = useState(null);
             const [isRegisterOpen, setIsRegisterOpen] = useState(false);
             const [isQuickAppOpen, setIsQuickAppOpen] = useState(false);
             const [isClinicModalOpen, setIsClinicModalOpen] = useState(false);
             const [isManageServicesOpen, setIsManageServicesOpen] = useState(false);
             const [activeTab, setActiveTab] = useState("overview");
-
+            
             const [toastMessage, setToastMessage] = useState("");
             const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
@@ -346,11 +353,10 @@
             }, [patients]);
 
             useEffect(() => {
-                if (currentView === "patients") {
-                    setDateFilterMode("today");
-                    setFilterDate(getTodayIso());
+                if (window.lucide) {
+                    window.lucide.createIcons();
                 }
-            }, [currentView]);
+            });
 
             const showToast = (msg) => {
                 setToastMessage(msg);
@@ -366,7 +372,7 @@
             const getPatientTotals = (p) => {
                 if (!p) return { totalCost: 0, totalPaid: 0, remaining: 0 };
                 const totalPaid = p.payments ? p.payments.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
-
+                
                 let totalCost = 0;
                 if (p.services && p.services.length > 0) {
                     totalCost = p.services.reduce((sum, s) => sum + Number(s.price || 0), 0);
@@ -400,10 +406,10 @@
 
             const filteredPatients = useMemo(() => {
                 return patients.filter(p => {
-                    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        p.phone.includes(searchTerm) ||
+                    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                        p.phone.includes(searchTerm) || 
                                         p.id.toLowerCase().includes(searchTerm.toLowerCase());
-
+                    
                     const { remaining } = getPatientTotals(p);
                     let matchStatus = true;
                     if (filterStatus === "owing") matchStatus = remaining > 0;
@@ -495,8 +501,8 @@
                     const updatedServices = [...prev.services];
                     const currentTeeth = updatedServices[serviceIndex].teeth || [];
                     const exists = currentTeeth.includes(toothNum);
-                    const newTeeth = exists
-                        ? currentTeeth.filter(t => t !== toothNum)
+                    const newTeeth = exists 
+                        ? currentTeeth.filter(t => t !== toothNum) 
                         : [...currentTeeth, toothNum];
 
                     updatedServices[serviceIndex] = {
@@ -589,6 +595,7 @@
                 showToast("បានបន្ថែមសេវាកម្មចូលក្នុងវិក្កយបត្រ!");
             };
 
+            // ⭐ មុខងារថ្មី: លុបសេវាកម្មចេញពីអ្នកជំងឺ
             const handleRemoveServiceFromPatient = (patientId, serviceId) => {
                 setPatients(patients.map(p => {
                     if (p.id === patientId) {
@@ -705,7 +712,7 @@
                 <div class="min-h-screen flex flex-col pb-12">
                     {toastMessage && (
                         <div class="fixed top-4 right-4 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 animate-bounce no-print">
-                            <Icon name="check-circle" className="w-5 h-5 text-emerald-400" />
+                            <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
                             <span class="text-sm font-medium">{toastMessage}</span>
                         </div>
                     )}
@@ -714,7 +721,7 @@
                         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
                             <div class="flex items-center gap-3">
                                 <div class="p-2.5 bg-teal-600 rounded-xl shadow-inner flex items-center justify-center">
-                                    <Icon name="activity" className="w-7 h-7 text-teal-100" />
+                                    <i data-lucide="activity" class="w-7 h-7 text-teal-100"></i>
                                 </div>
                                 <div>
                                     <h1 class="text-xl md:text-2xl font-bold tracking-wide flex items-center gap-2">
@@ -725,24 +732,24 @@
                             </div>
 
                             <div class="flex items-center bg-teal-800/60 p-1.5 rounded-xl border border-teal-600/50">
-                                <button
+                                <button 
                                     onClick={() => setCurrentView("patients")}
                                     class={`px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition flex items-center gap-2 ${
-                                        currentView === 'patients'
-                                            ? 'bg-white text-teal-800 shadow-md'
+                                        currentView === 'patients' 
+                                            ? 'bg-white text-teal-800 shadow-md' 
                                             : 'text-teal-100 hover:bg-teal-600/50'
                                     }`}>
-                                    <Icon name="users" className="w-4 h-4" />
+                                    <i data-lucide="users" class="w-4 h-4"></i>
                                     <span>បញ្ជីអ្នកជំងឺ ({patients.length})</span>
                                 </button>
-                                <button
+                                <button 
                                     onClick={() => setCurrentView("appointments")}
                                     class={`px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition flex items-center gap-2 relative ${
-                                        currentView === 'appointments'
-                                            ? 'bg-white text-teal-800 shadow-md'
+                                        currentView === 'appointments' 
+                                            ? 'bg-white text-teal-800 shadow-md' 
                                             : 'text-teal-100 hover:bg-teal-600/50'
                                     }`}>
-                                    <Icon name="calendar" className="w-4 h-4" />
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
                                     <span>កាលវិភាគណាត់ជួប</span>
                                     {stats.todayAppointmentsCount > 0 && (
                                         <span class="bg-amber-400 text-slate-900 font-extrabold text-[10px] px-1.5 py-0.5 rounded-full">
@@ -753,26 +760,26 @@
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <button
+                                <button 
                                     onClick={() => setIsManageServicesOpen(true)}
                                     title="គ្រប់គ្រងសេវាកម្មក្នុងប្រព័ន្ធ"
                                     class="bg-teal-800 hover:bg-teal-900 text-amber-300 hover:text-white border border-teal-600/70 font-semibold px-3 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 text-xs cursor-pointer">
-                                    <Icon name="layers" className="w-4 h-4" />
+                                    <i data-lucide="layers" class="w-4 h-4"></i>
                                     <span class="hidden sm:inline">គ្រប់គ្រងសេវាកម្ម</span>
                                 </button>
 
-                                <button
+                                <button 
                                     onClick={() => setIsClinicModalOpen(true)}
                                     title="កែប្រែព័ត៌មានគ្លីនិក"
                                     class="bg-teal-800 hover:bg-teal-900 text-teal-100 hover:text-white border border-teal-600/70 font-medium px-3 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 text-xs cursor-pointer">
-                                    <Icon name="settings" className="w-4 h-4" />
+                                    <i data-lucide="settings" class="w-4 h-4"></i>
                                     <span class="hidden sm:inline">កែប្រែគ្លីនិក</span>
                                 </button>
 
-                                <button
+                                <button 
                                     onClick={() => setIsRegisterOpen(true)}
                                     class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold px-4 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2 text-sm cursor-pointer">
-                                    <Icon name="user-plus" className="w-5 h-5" />
+                                    <i data-lucide="user-plus" class="w-5 h-5"></i>
                                     <span>+ ចុះឈ្មោះអ្នកជំងឺថ្មី</span>
                                 </button>
                             </div>
@@ -780,7 +787,7 @@
                     </header>
 
                     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow flex flex-col gap-6 no-print">
-
+                        
                         {currentView === 'patients' && (
                             <div class="space-y-6">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -791,7 +798,7 @@
                                             <p class="text-xs text-slate-400 mt-1">ក្នុងបញ្ជីជ្រើសរើស</p>
                                         </div>
                                         <div class="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600">
-                                            <Icon name="users" className="w-6 h-6" />
+                                            <i data-lucide="users" class="w-6 h-6"></i>
                                         </div>
                                     </div>
 
@@ -802,7 +809,7 @@
                                             <p class="text-xs text-slate-400 mt-1">តម្លៃសេវាកម្មសរុប</p>
                                         </div>
                                         <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                                            <Icon name="dollar-sign" className="w-6 h-6" />
+                                            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
                                         </div>
                                     </div>
 
@@ -815,7 +822,7 @@
                                             </span>
                                         </div>
                                         <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-                                            <Icon name="wallet" className="w-6 h-6" />
+                                            <i data-lucide="wallet" class="w-6 h-6"></i>
                                         </div>
                                     </div>
 
@@ -826,16 +833,16 @@
                                             <p class="text-xs text-rose-500 font-medium mt-1">ត្រូវប្រមូលបន្ថែម</p>
                                         </div>
                                         <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
-                                            <Icon name="alert-circle" className="w-6 h-6" />
+                                            <i data-lucide="alert-circle" class="w-6 h-6"></i>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
                                     <div class="relative flex-1">
-                                        <Icon name="search" className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            type="text"
+                                        <i data-lucide="search" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input 
+                                            type="text" 
                                             placeholder="ស្វែងរកតាម ឈ្មោះអ្នកជំងឺ លេខទូរស័ព្ទ ឬ អាយឌី..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -844,17 +851,17 @@
                                     </div>
 
                                     <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                                        <button
+                                        <button 
                                             onClick={() => setFilterStatus("all")}
                                             class={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filterStatus === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
                                             ទាំងអស់
                                         </button>
-                                        <button
+                                        <button 
                                             onClick={() => setFilterStatus("owing")}
                                             class={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filterStatus === 'owing' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
                                             នៅខ្វះប្រាក់
                                         </button>
-                                        <button
+                                        <button 
                                             onClick={() => setFilterStatus("paid")}
                                             class={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filterStatus === 'paid' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
                                             បង់គ្រប់ហើយ
@@ -862,7 +869,7 @@
                                     </div>
 
                                     <div class="flex items-center gap-2">
-                                        <select
+                                        <select 
                                             value={dateFilterMode}
                                             onChange={(e) => setDateFilterMode(e.target.value)}
                                             class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
@@ -872,7 +879,7 @@
                                         </select>
 
                                         {(dateFilterMode === 'today' || dateFilterMode === 'month') && (
-                                            <input
+                                            <input 
                                                 type="date"
                                                 value={filterDate}
                                                 onChange={(e) => setFilterDate(e.target.value)}
@@ -885,7 +892,7 @@
                                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                                     <div class="p-4 border-b border-slate-100 flex justify-between items-center">
                                         <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                                            <Icon name="list" className="w-5 h-5 text-teal-600" />
+                                            <i data-lucide="list" class="w-5 h-5 text-teal-600"></i>
                                             បញ្ជីឈ្មោះអ្នកជំងឺ ({filteredPatients.length})
                                         </h2>
                                     </div>
@@ -907,7 +914,7 @@
                                                 {filteredPatients.length === 0 ? (
                                                     <tr>
                                                         <td colSpan="7" class="py-12 text-center text-slate-400">
-                                                            <Icon name="folder-open" className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                                            <i data-lucide="folder-open" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
                                                             <p class="text-base font-medium">មិនមានទិន្នន័យអ្នកជំងឺឡើយ</p>
                                                             <p class="text-xs text-slate-400 mt-1">សូមសាកល្បងស្វែងរកឡើងវិញ ឬចុច "+ ចុះឈ្មោះអ្នកជំងឺថ្មី"</p>
                                                         </td>
@@ -958,37 +965,37 @@
                                                                 <td class="py-3.5 px-4">
                                                                     {remaining > 0 ? (
                                                                         <span class="inline-flex items-center gap-1 font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg text-xs">
-                                                                            <Icon name="alert-circle" className="w-3.5 h-3.5" />
+                                                                            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
                                                                             {formatMoney(remaining)}
                                                                         </span>
                                                                     ) : (
                                                                         <span class="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg text-xs">
-                                                                            <Icon name="check-circle-2" className="w-3.5 h-3.5" />
+                                                                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
                                                                             គ្រប់ចំនួន
                                                                         </span>
                                                                     )}
                                                                 </td>
                                                                 <td class="py-3.5 px-4 text-center">
                                                                     <div class="flex items-center justify-center gap-1.5">
-                                                                        <button
+                                                                        <button 
                                                                             onClick={() => { setSelectedPatient(patient); setActiveTab("overview"); }}
                                                                             class="px-2.5 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg text-xs font-semibold transition flex items-center gap-1">
-                                                                            <Icon name="eye" className="w-3.5 h-3.5" />
+                                                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                                                             មើលលម្អិត
                                                                         </button>
 
-                                                                        <button
+                                                                        <button 
                                                                             onClick={() => setPosPatient(patient)}
                                                                             title="បោះពុម្ពវិក្កយបត្រ POS"
                                                                             class="px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                                                            <Icon name="printer" className="w-3.5 h-3.5" />
+                                                                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                                                             POS
                                                                         </button>
 
-                                                                        <button
+                                                                        <button 
                                                                             onClick={() => setDeleteConfirmId(patient.id)}
                                                                             class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
-                                                                            <Icon name="trash-2" className="w-4 h-4" />
+                                                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -1004,7 +1011,7 @@
                         )}
 
                         {currentView === 'appointments' && (
-                            <MasterAppointmentsView
+                            <MasterAppointmentsView 
                                 appointments={masterAppointments}
                                 patients={patients}
                                 onToggleStatus={handleToggleAppointmentStatus}
@@ -1021,7 +1028,7 @@
                     </main>
 
                     {isManageServicesOpen && (
-                        <ManageServicesModal
+                        <ManageServicesModal 
                             presetServices={presetServices}
                             setPresetServices={setPresetServices}
                             onClose={() => setIsManageServicesOpen(false)}
@@ -1030,7 +1037,7 @@
                     )}
 
                     {isClinicModalOpen && (
-                        <EditClinicModal
+                        <EditClinicModal 
                             clinicInfo={clinicInfo}
                             onSave={handleSaveClinicInfo}
                             onClose={() => setIsClinicModalOpen(false)}
@@ -1042,18 +1049,18 @@
                             <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                                 <div class="bg-teal-700 px-6 py-4 text-white flex justify-between items-center">
                                     <h3 class="font-bold text-base flex items-center gap-2">
-                                        <Icon name="calendar-plus" className="w-5 h-5" />
+                                        <i data-lucide="calendar-plus" class="w-5 h-5"></i>
                                         បន្ថែមការណាត់ជួបថ្មី
                                     </h3>
                                     <button onClick={() => setIsQuickAppOpen(false)} class="text-teal-200 hover:text-white">
-                                        <Icon name="x" className="w-5 h-5" />
+                                        <i data-lucide="x" class="w-5 h-5"></i>
                                     </button>
                                 </div>
 
                                 <form onSubmit={handleQuickAppointmentSubmit} class="p-6 space-y-4">
                                     <div>
                                         <label class="block text-xs font-medium text-slate-600 mb-1">ជ្រើសរើសអ្នកជំងឺ *</label>
-                                        <select
+                                        <select 
                                             required
                                             value={quickApp.patientId}
                                             onChange={(e) => setQuickApp({ ...quickApp, patientId: e.target.value })}
@@ -1068,8 +1075,8 @@
                                     <div class="grid grid-cols-2 gap-3">
                                         <div>
                                             <label class="block text-xs font-medium text-slate-600 mb-1">កាលបរិច្ឆេទ *</label>
-                                            <input
-                                                type="date"
+                                            <input 
+                                                type="date" 
                                                 required
                                                 value={quickApp.date}
                                                 onChange={(e) => setQuickApp({ ...quickApp, date: e.target.value })}
@@ -1078,8 +1085,8 @@
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-slate-600 mb-1">ម៉ោងណាត់ជួប</label>
-                                            <input
-                                                type="time"
+                                            <input 
+                                                type="time" 
                                                 value={quickApp.time}
                                                 onChange={(e) => setQuickApp({ ...quickApp, time: e.target.value })}
                                                 class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
@@ -1089,8 +1096,8 @@
 
                                     <div>
                                         <label class="block text-xs font-medium text-slate-600 mb-1">បរិយាយការណាត់ជួប</label>
-                                        <input
-                                            type="text"
+                                        <input 
+                                            type="text" 
                                             placeholder="ឧទាហរណ៍: សារ៉េដែកពត់ធ្មេញ, ដាក់ក្បាល Crown"
                                             value={quickApp.note}
                                             onChange={(e) => setQuickApp({ ...quickApp, note: e.target.value })}
@@ -1099,14 +1106,14 @@
                                     </div>
 
                                     <div class="pt-2 flex justify-end gap-2">
-                                        <button
-                                            type="button"
+                                        <button 
+                                            type="button" 
                                             onClick={() => setIsQuickAppOpen(false)}
                                             class="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-medium">
                                             បោះបង់
                                         </button>
-                                        <button
-                                            type="submit"
+                                        <button 
+                                            type="submit" 
                                             class="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold shadow-md">
                                             + រក្សាទុកការណាត់ជួប
                                         </button>
@@ -1121,25 +1128,25 @@
                             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col max-h-[92vh]">
                                 <div class="bg-teal-700 px-6 py-4 text-white flex justify-between items-center">
                                     <h3 class="text-lg font-bold flex items-center gap-2">
-                                        <Icon name="user-plus" className="w-5 h-5" />
+                                        <i data-lucide="user-plus" class="w-5 h-5"></i>
                                         ចុះឈ្មោះអ្នកជំងឺថ្មី & បញ្ចូលសេវាកម្មព្យាបាល
                                     </h3>
                                     <button onClick={() => setIsRegisterOpen(false)} class="text-teal-200 hover:text-white">
-                                        <Icon name="x" className="w-6 h-6" />
+                                        <i data-lucide="x" class="w-6 h-6"></i>
                                     </button>
                                 </div>
 
                                 <form onSubmit={handleAddPatient} class="p-6 overflow-y-auto space-y-6">
                                     <div>
                                         <h4 class="text-xs font-bold text-teal-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <Icon name="user" className="w-4 h-4" />
+                                            <i data-lucide="user" class="w-4 h-4"></i>
                                             ១. ព័ត៌មានផ្ទាល់ខ្លួនអ្នកជំងឺ
                                         </h4>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                             <div class="col-span-1 md:col-span-2">
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ឈ្មោះអ្នកជំងឺ *</label>
-                                                <input
-                                                    type="text"
+                                                <input 
+                                                    type="text" 
                                                     required
                                                     placeholder="ឧទាហរណ៍: លឹម សុខា"
                                                     value={newPatient.name}
@@ -1149,8 +1156,8 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">លេខទូរស័ព្ទ *</label>
-                                                <input
-                                                    type="text"
+                                                <input 
+                                                    type="text" 
                                                     required
                                                     placeholder="012 000 000"
                                                     value={newPatient.phone}
@@ -1161,15 +1168,15 @@
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ភេទ / អាយុ</label>
                                                 <div class="flex gap-2">
-                                                    <select
+                                                    <select 
                                                         value={newPatient.gender}
                                                         onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
                                                         class="border border-slate-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
                                                         <option value="ស្រី">ស្រី</option>
                                                         <option value="ប្រុស">ប្រុស</option>
                                                     </select>
-                                                    <input
-                                                        type="number"
+                                                    <input 
+                                                        type="number" 
                                                         placeholder="អាយុ"
                                                         value={newPatient.age}
                                                         onChange={(e) => setNewPatient({ ...newPatient, age: e.target.value })}
@@ -1183,19 +1190,19 @@
                                     <div>
                                         <div class="flex justify-between items-center mb-3">
                                             <h4 class="text-xs font-bold text-teal-700 uppercase tracking-wider flex items-center gap-2">
-                                                <Icon name="layers" className="w-4 h-4" />
+                                                <i data-lucide="layers" class="w-4 h-4"></i>
                                                 ២. បញ្ជីសេវាកម្មព្យាបាល និង លេខធ្មេញ (អាចបន្ថែមច្រើនសេវាកម្ម)
                                             </h4>
                                             <div class="flex items-center gap-2">
-                                                <button
-                                                    type="button"
+                                                <button 
+                                                    type="button" 
                                                     onClick={() => setIsManageServicesOpen(true)}
                                                     class="px-2.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                                    <Icon name="settings" className="w-3.5 h-3.5" />
+                                                    <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                                                     គ្រប់គ្រង/កែសម្រួលសេវាកម្ម
                                                 </button>
-                                                <button
-                                                    type="button"
+                                                <button 
+                                                    type="button" 
                                                     onClick={handleAddServiceRow}
                                                     class="px-3 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                                     + បន្ថែមសេវាកម្មមួយទៀត
@@ -1209,11 +1216,11 @@
                                                     <div class="flex justify-between items-center border-b border-slate-200 pb-2">
                                                         <span class="text-xs font-bold text-slate-700">សេវាកម្មទី {sIndex + 1}</span>
                                                         {newPatient.services.length > 1 && (
-                                                            <button
+                                                            <button 
                                                                 type="button"
                                                                 onClick={() => handleRemoveServiceRow(sIndex)}
                                                                 class="text-xs text-rose-500 hover:text-rose-700 font-semibold flex items-center gap-1">
-                                                                <Icon name="trash" className="w-3.5 h-3.5" />
+                                                                <i data-lucide="trash" class="w-3.5 h-3.5"></i>
                                                                 លុបសេវាកម្មនេះ
                                                             </button>
                                                         )}
@@ -1223,7 +1230,7 @@
                                                         <label class="block text-xs font-semibold text-teal-800 mb-1">
                                                             ជ្រើសរើសពីបញ្ជីសេវាកម្មដែលមានស្រាប់ (Preset Service):
                                                         </label>
-                                                        <select
+                                                        <select 
                                                             onChange={(e) => handleSelectPresetForNewPatient(sIndex, e.target.value)}
                                                             class="w-full border border-teal-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-teal-500 bg-teal-50/50">
                                                             <option value="">-- ចុចជ្រើសរើសសេវាកម្មពីកាតាឡុកប្រព័ន្ធ --</option>
@@ -1238,8 +1245,8 @@
                                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                         <div class="col-span-1 md:col-span-2">
                                                             <label class="block text-xs font-medium text-slate-600 mb-1">ឈ្មោះសេវាកម្ម / បរិយាយ *</label>
-                                                            <input
-                                                                type="text"
+                                                            <input 
+                                                                type="text" 
                                                                 required
                                                                 placeholder="ឧទាហរណ៍: ប៉ះធ្មេញ, ដាំធ្មេញ Implant, ពត់ធ្មេញ..."
                                                                 value={service.name}
@@ -1249,11 +1256,10 @@
                                                         </div>
                                                         <div>
                                                             <label class="block text-xs font-medium text-slate-600 mb-1">តម្លៃសេវាកម្ម (USD) *</label>
-                                                            <input
-                                                                type="number"
+                                                            <input 
+                                                                type="number" 
                                                                 required
                                                                 min="0"
-                                                                step="0.01"
                                                                 placeholder="0.00"
                                                                 value={service.price}
                                                                 onChange={(e) => handleServiceFieldChange(sIndex, 'price', e.target.value)}
@@ -1262,7 +1268,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <ToothSelector
+                                                    <ToothSelector 
                                                         label={`ជ្រើសរើសលេខធ្មេញសម្រាប់ "${service.name || `សេវាកម្មទី ${sIndex + 1}`}" (អាចរំកិលឆ្វេងស្តាំ):`}
                                                         selectedTeeth={service.teeth || []}
                                                         onToggleTooth={(toothNum) => toggleToothForService(sIndex, toothNum)}
@@ -1274,7 +1280,7 @@
 
                                     <div class="bg-teal-50/60 p-4 rounded-2xl border border-teal-200">
                                         <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <Icon name="receipt" className="w-4 h-4" />
+                                            <i data-lucide="receipt" class="w-4 h-4"></i>
                                             ៣. គណនាវិក្កយបត្របូកសរុប (Single Invoice Total)
                                         </h4>
                                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1287,10 +1293,9 @@
 
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ប្រាក់កក់ដំបូង (USD)</label>
-                                                <input
-                                                    type="number"
+                                                <input 
+                                                    type="number" 
                                                     min="0"
-                                                    step="0.01"
                                                     placeholder="0.00"
                                                     value={newPatient.deposit}
                                                     onChange={(e) => setNewPatient({ ...newPatient, deposit: e.target.value })}
@@ -1309,14 +1314,14 @@
 
                                     <div>
                                         <h4 class="text-xs font-bold text-teal-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <Icon name="calendar" className="w-4 h-4" />
+                                            <i data-lucide="calendar" class="w-4 h-4"></i>
                                             ៤. កាលបរិច្ឆេទណាត់ជួបលើកទីមួយ (First Appointment)
                                         </h4>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ថ្ងៃណាត់ជួបលើកទី១</label>
-                                                <input
-                                                    type="date"
+                                                <input 
+                                                    type="date" 
                                                     value={newPatient.firstAppDate}
                                                     onChange={(e) => setNewPatient({ ...newPatient, firstAppDate: e.target.value })}
                                                     class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -1324,8 +1329,8 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ម៉ោងណាត់ជួប</label>
-                                                <input
-                                                    type="time"
+                                                <input 
+                                                    type="time" 
                                                     value={newPatient.firstAppTime}
                                                     onChange={(e) => setNewPatient({ ...newPatient, firstAppTime: e.target.value })}
                                                     class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -1336,8 +1341,8 @@
 
                                     <div>
                                         <label class="block text-xs font-medium text-slate-600 mb-1">កំណត់សម្គាល់បន្ថែម</label>
-                                        <textarea
-                                            rows="2"
+                                        <textarea 
+                                            rows="2" 
                                             placeholder="រោគវិនិច្ឆ័យ ឬ ប្រវត្តិអាឡែកហ្ស៊ីប្រចាំខ្លួន..."
                                             value={newPatient.notes}
                                             onChange={(e) => setNewPatient({ ...newPatient, notes: e.target.value })}
@@ -1346,14 +1351,14 @@
                                     </div>
 
                                     <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">
-                                        <button
-                                            type="button"
+                                        <button 
+                                            type="button" 
                                             onClick={() => setIsRegisterOpen(false)}
                                             class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-medium text-sm">
                                             បោះបង់
                                         </button>
-                                        <button
-                                            type="submit"
+                                        <button 
+                                            type="submit" 
                                             class="px-6 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-semibold text-sm shadow-lg shadow-teal-700/20">
                                             រក្សាទុកអ្នកជំងឺ
                                         </button>
@@ -1364,7 +1369,7 @@
                     )}
 
                     {selectedPatient && (
-                        <PatientDetailModal
+                        <PatientDetailModal 
                             patient={selectedPatient}
                             onClose={() => setSelectedPatient(null)}
                             activeTab={activeTab}
@@ -1383,10 +1388,10 @@
                     )}
 
                     {posPatient && (
-                        <PosReceiptModal
-                            patient={posPatient}
+                        <PosReceiptModal 
+                            patient={posPatient} 
                             clinicInfo={clinicInfo}
-                            onClose={() => setPosPatient(null)}
+                            onClose={() => setPosPatient(null)} 
                             getPatientTotals={getPatientTotals}
                         />
                     )}
@@ -1395,17 +1400,17 @@
                         <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
                             <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
                                 <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
-                                    <Icon name="trash-2" className="w-6 h-6" />
+                                    <i data-lucide="trash-2" class="w-6 h-6"></i>
                                 </div>
                                 <h3 class="text-base font-bold text-slate-800">តើអ្នកពិតជាចង់លុបទិន្នន័យអ្នកជំងឺនេះមែនទេ?</h3>
                                 <p class="text-xs text-slate-500">សកម្មភាពនេះមិនអាចផ្លាស់ប្តូរវិញបានឡើយ។</p>
                                 <div class="flex justify-center gap-3 pt-2">
-                                    <button
+                                    <button 
                                         onClick={() => setDeleteConfirmId(null)}
                                         class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl text-xs">
                                         បោះបង់
                                     </button>
-                                    <button
+                                    <button 
                                         onClick={() => executeDeletePatient(deleteConfirmId)}
                                         class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl text-xs">
                                         យល់ព្រមលុប
@@ -1417,12 +1422,11 @@
                 </div>
             );
         }
-   javascript
 
         function ManageServicesModal({ presetServices, setPresetServices, onClose, showToast }) {
             const [newCatName, setNewCatName] = useState("");
             const [newCatPrice, setNewCatPrice] = useState("");
-
+            
             const [editingId, setEditingId] = useState(null);
             const [editName, setEditName] = useState("");
             const [editPrice, setEditPrice] = useState("");
@@ -1475,25 +1479,25 @@
                     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
                         <div class="bg-teal-700 px-6 py-4 text-white flex justify-between items-center">
                             <h3 class="font-bold text-base flex items-center gap-2">
-                                <Icon name="layers" className="w-5 h-5 text-amber-300" />
+                                <i data-lucide="layers" class="w-5 h-5 text-amber-300"></i>
                                 គ្រប់គ្រងបញ្ជីសេវាកម្មក្នុងប្រព័ន្ធ (Preset Services Catalog)
                             </h3>
                             <button onClick={onClose} class="text-teal-200 hover:text-white">
-                                <Icon name="x" className="w-5 h-5" />
+                                <i data-lucide="x" class="w-5 h-5"></i>
                             </button>
                         </div>
 
                         <div class="p-6 overflow-y-auto space-y-6">
                             <form onSubmit={handleAddPreset} class="bg-teal-50/70 p-4 rounded-xl border border-teal-200 space-y-3">
                                 <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Icon name="plus-circle" className="w-4 h-4" />
+                                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
                                     បន្ថែមសេវាកម្មថ្មីចូលក្នុងប្រព័ន្ធ
                                 </h4>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div class="sm:col-span-2">
                                         <label class="block text-[11px] font-medium text-slate-600 mb-1">ឈ្មោះសេវាកម្ម *</label>
-                                        <input
-                                            type="text"
+                                        <input 
+                                            type="text" 
                                             required
                                             placeholder="ឧទាហរណ៍: ដកធ្មេញគ្រប (Surgical Extraction)"
                                             value={newCatName}
@@ -1503,11 +1507,10 @@
                                     </div>
                                     <div>
                                         <label class="block text-[11px] font-medium text-slate-600 mb-1">តម្លៃដើម (USD) *</label>
-                                        <input
-                                            type="number"
+                                        <input 
+                                            type="number" 
                                             required
                                             min="0"
-                                            step="0.01"
                                             placeholder="0.00"
                                             value={newCatPrice}
                                             onChange={(e) => setNewCatPrice(e.target.value)}
@@ -1516,10 +1519,10 @@
                                     </div>
                                 </div>
                                 <div class="flex justify-end pt-1">
-                                    <button
-                                        type="submit"
+                                    <button 
+                                        type="submit" 
                                         class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition flex items-center gap-1">
-                                        <Icon name="plus" className="w-3.5 h-3.5" />
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                                         + រក្សាទុកសេវាកម្មថ្មី
                                     </button>
                                 </div>
@@ -1527,7 +1530,7 @@
 
                             <div>
                                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                    <Icon name="list" className="w-4 h-4 text-teal-600" />
+                                    <i data-lucide="list" class="w-4 h-4 text-teal-600"></i>
                                     បញ្ជីសេវាកម្មដែលមានស្រាប់ ({presetServices.length})
                                 </h4>
 
@@ -1556,8 +1559,8 @@
                                                             <td class="py-3 px-4 font-bold text-slate-400">{index + 1}</td>
                                                             <td class="py-3 px-4">
                                                                 {isEditing ? (
-                                                                    <input
-                                                                        type="text"
+                                                                    <input 
+                                                                        type="text" 
                                                                         value={editName}
                                                                         onChange={(e) => setEditName(e.target.value)}
                                                                         class="w-full border border-teal-400 rounded px-2 py-1 text-xs focus:outline-none"
@@ -1568,9 +1571,8 @@
                                                             </td>
                                                             <td class="py-3 px-4 text-right">
                                                                 {isEditing ? (
-                                                                    <input
-                                                                        type="number"
-                                                                        step="0.01"
+                                                                    <input 
+                                                                        type="number" 
                                                                         value={editPrice}
                                                                         onChange={(e) => setEditPrice(e.target.value)}
                                                                         class="w-24 border border-teal-400 rounded px-2 py-1 text-xs text-right font-bold focus:outline-none ml-auto"
@@ -1582,14 +1584,12 @@
                                                             <td class="py-3 px-4 text-center">
                                                                 {isEditing ? (
                                                                     <div class="flex items-center justify-center gap-1">
-                                                                        <button
-                                                                            type="button"
+                                                                        <button 
                                                                             onClick={() => saveEditing(srv.id)}
                                                                             class="px-2.5 py-1 bg-emerald-600 text-white rounded text-[11px] font-bold hover:bg-emerald-700">
                                                                             រក្សាទុក
                                                                         </button>
-                                                                        <button
-                                                                            type="button"
+                                                                        <button 
                                                                             onClick={() => setEditingId(null)}
                                                                             class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded text-[11px] font-medium hover:bg-slate-300">
                                                                             បោះបង់
@@ -1597,18 +1597,16 @@
                                                                     </div>
                                                                 ) : (
                                                                     <div class="flex items-center justify-center gap-1.5">
-                                                                        <button
-                                                                            type="button"
+                                                                        <button 
                                                                             onClick={() => startEditing(srv)}
                                                                             class="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded text-[11px] font-semibold flex items-center gap-0.5">
-                                                                            <Icon name="edit" className="w-3 h-3" />
+                                                                            <i data-lucide="edit" class="w-3 h-3"></i>
                                                                             កែសម្រួល
                                                                         </button>
-                                                                        <button
-                                                                            type="button"
+                                                                        <button 
                                                                             onClick={() => deletePreset(srv.id)}
                                                                             class="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded">
-                                                                            <Icon name="trash-2" className="w-3.5 h-3.5" />
+                                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                                         </button>
                                                                     </div>
                                                                 )}
@@ -1624,7 +1622,7 @@
                         </div>
 
                         <div class="p-4 border-t border-slate-100 flex justify-end bg-slate-50">
-                            <button
+                            <button 
                                 onClick={onClose}
                                 class="px-5 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl text-xs font-bold shadow">
                                 រួចរាល់ (បិទ)
@@ -1648,19 +1646,19 @@
                     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
                         <div class="bg-teal-700 px-6 py-4 text-white flex justify-between items-center">
                             <h3 class="font-bold text-base flex items-center gap-2">
-                                <Icon name="settings" className="w-5 h-5" />
+                                <i data-lucide="settings" class="w-5 h-5"></i>
                                 កែប្រែព័ត៌មានគ្លីនិក
                             </h3>
                             <button onClick={onClose} class="text-teal-200 hover:text-white">
-                                <Icon name="x" className="w-5 h-5" />
+                                <i data-lucide="x" class="w-5 h-5"></i>
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} class="p-6 space-y-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">ឈ្មោះគ្លីនិក *</label>
-                                <input
-                                    type="text"
+                                <input 
+                                    type="text" 
                                     required
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -1670,8 +1668,8 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">ពាក្យស្លោក/ពិពណ៌នាបាតក្បាល</label>
-                                <input
-                                    type="text"
+                                <input 
+                                    type="text" 
                                     value={formData.subtitle}
                                     onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
                                     class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -1680,8 +1678,8 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">លេខទូរស័ព្ទទំនាក់ទំនង *</label>
-                                <input
-                                    type="text"
+                                <input 
+                                    type="text" 
                                     required
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -1691,8 +1689,8 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">អាសយដ្ឋានគ្លីនិក</label>
-                                <input
-                                    type="text"
+                                <input 
+                                    type="text" 
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                     class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -1701,7 +1699,7 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">សារជូនពរលើវិក្កយបត្រ POS</label>
-                                <textarea
+                                <textarea 
                                     rows="2"
                                     value={formData.footerNote}
                                     onChange={(e) => setFormData({ ...formData, footerNote: e.target.value })}
@@ -1710,14 +1708,14 @@
                             </div>
 
                             <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                                <button
-                                    type="button"
+                                <button 
+                                    type="button" 
                                     onClick={onClose}
                                     class="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-medium">
                                     បោះបង់
                                 </button>
-                                <button
-                                    type="submit"
+                                <button 
+                                    type="submit" 
                                     class="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold shadow-md">
                                     រក្សាទុកព័ត៌មានគ្លីនិក
                                 </button>
@@ -1773,7 +1771,7 @@
                                 <p class="text-xs text-slate-400 mt-1">ក្នុងប្រព័ន្ធគ្រប់គ្រង</p>
                             </div>
                             <div class="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600">
-                                <Icon name="calendar" className="w-6 h-6" />
+                                <i data-lucide="calendar" class="w-6 h-6"></i>
                             </div>
                         </div>
 
@@ -1784,7 +1782,7 @@
                                 <p class="text-xs text-slate-400 mt-1">កាលបរិច្ឆេទ {formatDate(getTodayIso())}</p>
                             </div>
                             <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                                <Icon name="clock" className="w-6 h-6" />
+                                <i data-lucide="clock" class="w-6 h-6"></i>
                             </div>
                         </div>
 
@@ -1795,7 +1793,7 @@
                                 <p class="text-xs text-slate-400 mt-1">មិនទាន់បានព្យាបាល</p>
                             </div>
                             <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
-                                <Icon name="alert-circle" className="w-6 h-6" />
+                                <i data-lucide="alert-circle" class="w-6 h-6"></i>
                             </div>
                         </div>
 
@@ -1806,16 +1804,16 @@
                                 <p class="text-xs text-slate-400 mt-1">ព្យាបាលរួចរាល់</p>
                             </div>
                             <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-                                <Icon name="check-circle-2" className="w-6 h-6" />
+                                <i data-lucide="check-circle-2" class="w-6 h-6"></i>
                             </div>
                         </div>
                     </div>
 
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
                         <div class="relative flex-1">
-                            <Icon name="search" className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
+                            <i data-lucide="search" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input 
+                                type="text" 
                                 placeholder="ស្វែងរកការណាត់ជួបតាម ឈ្មោះអ្នកជំងឺ លេខទូរស័ព្ទ ឬ កំណត់សម្គាល់..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -1824,17 +1822,17 @@
                         </div>
 
                         <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                            <button
+                            <button 
                                 onClick={() => setFilterDateMode("today")}
                                 class={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${filterDateMode === 'today' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
                                 ថ្ងៃនេះ
                             </button>
-                            <button
+                            <button 
                                 onClick={() => setFilterDateMode("all")}
                                 class={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${filterDateMode === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
                                 ទាំងអស់
                             </button>
-                            <button
+                            <button 
                                 onClick={() => setFilterDateMode("custom")}
                                 class={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${filterDateMode === 'custom' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
                                 ជ្រើសរើសថ្ងៃ
@@ -1842,15 +1840,15 @@
                         </div>
 
                         {filterDateMode === 'custom' && (
-)}
-                            <input
+                            <input 
                                 type="date"
                                 value={customDate}
-                                onChange={(e) => setCustomDate(e.target.value                                class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                onChange={(e) => setCustomDate(e.target.value)}
+                                class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                             />
                         )}
 
-                        <select
+                        <select 
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                             class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 font-medium">
@@ -1859,10 +1857,10 @@
                             <option value="completed">រួចរាល់</option>
                         </select>
 
-                        <button
+                        <button 
                             onClick={onOpenQuickAppModal}
                             class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 text-xs whitespace-nowrap">
-                            <Icon name="plus-circle" className="w-4 h-4" />
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
                             <span>+ បន្ថែមការណាត់ជួប</span>
                         </button>
                     </div>
@@ -1870,7 +1868,7 @@
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 flex justify-between items-center">
                             <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                                <Icon name="calendar-days" className="w-5 h-5 text-teal-600" />
+                                <i data-lucide="calendar-days" class="w-5 h-5 text-teal-600"></i>
                                 បញ្ជីការណាត់ជួបទាំងអស់ ({filteredApps.length})
                             </h2>
                         </div>
@@ -1890,7 +1888,7 @@
                                     {filteredApps.length === 0 ? (
                                         <tr>
                                             <td colSpan="5" class="py-12 text-center text-slate-400">
-                                                <Icon name="calendar-x" className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                                                <i data-lucide="calendar-x" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
                                                 <p class="font-medium text-slate-600">គ្មានការណាត់ជួបឡើយ</p>
                                             </td>
                                         </tr>
@@ -1900,7 +1898,7 @@
                                                 <td class="py-3.5 px-4">
                                                     <div class="font-bold text-slate-800">{formatDate(app.date)}</div>
                                                     <div class="text-xs text-teal-700 font-semibold flex items-center gap-1 mt-0.5">
-                                                        <Icon name="clock" className="w-3.5 h-3.5" />
+                                                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                                                         ម៉ោង {app.time || '09:00'}
                                                     </div>
                                                 </td>
@@ -1912,28 +1910,28 @@
                                                     {app.note || "ការណាត់ជួបពិនិត្យតាមដាន"}
                                                 </td>
                                                 <td class="py-3.5 px-4">
-                                                    <button
+                                                    <button 
                                                         onClick={() => onToggleStatus(app.patientId, app.id)}
                                                         class={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
-                                                            app.status === 'រួចរាល់'
-                                                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                                            app.status === 'រួចរាល់' 
+                                                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
                                                                 : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                                                         }`}>
-                                                        <Icon name={app.status === 'រួចរាល់' ? 'check-circle-2' : 'clock'} className="w-3.5 h-3.5" />
+                                                        <i data-lucide={app.status === 'រួចរាល់' ? 'check-circle-2' : 'clock'} class="w-3.5 h-3.5"></i>
                                                         <span>{app.status}</span>
                                                     </button>
                                                 </td>
                                                 <td class="py-3.5 px-4 text-center">
                                                     <div class="flex items-center justify-center gap-2">
-                                                        <button
+                                                        <button 
                                                             onClick={() => onOpenPatientDetail(app.fullPatient)}
                                                             class="px-2.5 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg text-xs font-bold">
                                                             មើលអ្នកជំងឺ
                                                         </button>
-                                                        <button
+                                                        <button 
                                                             onClick={() => onDeleteAppointment(app.patientId, app.id)}
                                                             class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
-                                                            <Icon name="trash-2" className="w-4 h-4" />
+                                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -1947,12 +1945,11 @@
                 </div>
             );
         }
-
-        function PatientDetailModal({
-            patient, onClose, activeTab, setActiveTab,
-            onAddAppointment, onToggleAppointmentStatus, onAddPayment, onAddService,
+function PatientDetailModal({ 
+            patient, onClose, activeTab, setActiveTab, 
+            onAddAppointment, onToggleAppointmentStatus, onAddPayment, onAddService, 
             onRemoveService,
-            getPatientTotals, onOpenPosReceipt, presetServices, setIsManageServicesOpen, showToast
+            getPatientTotals, onOpenPosReceipt, presetServices, setIsManageServicesOpen, showToast 
         }) {
             const { totalCost, totalPaid, remaining } = getPatientTotals(patient);
 
@@ -2025,6 +2022,7 @@
             return (
                 <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print">
                     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col max-h-[92vh]">
+                        {/* Modal Header */}
                         <div class="bg-teal-700 px-6 py-4 text-white flex justify-between items-center">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-teal-600 font-bold flex items-center justify-center text-teal-100 text-sm">
@@ -2039,18 +2037,19 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button
+                                <button 
                                     onClick={() => onOpenPosReceipt(patient)}
                                     class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow transition">
-                                    <Icon name="printer" className="w-4 h-4" />
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
                                     <span>បោះពុម្ពវិក្កយបត្រ POS</span>
                                 </button>
                                 <button onClick={onClose} class="text-teal-200 hover:text-white p-1">
-                                    <Icon name="x" className="w-6 h-6" />
+                                    <i data-lucide="x" class="w-6 h-6"></i>
                                 </button>
                             </div>
                         </div>
 
+                        {/* Patient Summary Financial Ribbon */}
                         <div class="bg-slate-100 px-6 py-3 border-b border-slate-200 grid grid-cols-3 text-center">
                             <div>
                                 <p class="text-[11px] text-slate-500 font-semibold uppercase">តម្លៃសរុប</p>
@@ -2068,29 +2067,32 @@
                             </div>
                         </div>
 
+                        {/* Tab Bar */}
                         <div class="flex border-b border-slate-200 bg-white px-6 pt-2">
-                            <button
+                            <button 
                                 onClick={() => setActiveTab("overview")}
                                 class={`px-4 py-2.5 font-bold text-xs border-b-2 transition flex items-center gap-2 ${activeTab === 'overview' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                                <Icon name="file-text" className="w-4 h-4" />
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
                                 ព័ត៌មានព្យាបាល & សេវាកម្ម
                             </button>
-                            <button
+                            <button 
                                 onClick={() => setActiveTab("appointments")}
                                 class={`px-4 py-2.5 font-bold text-xs border-b-2 transition flex items-center gap-2 ${activeTab === 'appointments' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                                <Icon name="calendar" className="w-4 h-4" />
+                                <i data-lucide="calendar" class="w-4 h-4"></i>
                                 កាលវិភាគណាត់ជួប ({patient.appointments ? patient.appointments.length : 0})
                             </button>
-                            <button
+                            <button 
                                 onClick={() => setActiveTab("payments")}
                                 class={`px-4 py-2.5 font-bold text-xs border-b-2 transition flex items-center gap-2 ${activeTab === 'payments' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                                <Icon name="receipt" className="w-4 h-4" />
+                                <i data-lucide="receipt" class="w-4 h-4"></i>
                                 ប្រវត្តិការបង់ប្រាក់ ({patient.payments ? patient.payments.length : 0})
                             </button>
                         </div>
 
+                        {/* Modal Body */}
                         <div class="p-6 overflow-y-auto space-y-6 flex-grow">
-
+                            
+                            {/* TAB 1: OVERVIEW & SERVICES */}
                             {activeTab === 'overview' && (
                                 <div class="space-y-6">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
@@ -2104,9 +2106,10 @@
                                         </div>
                                     </div>
 
+                                    {/* Existing Services List */}
                                     <div>
                                         <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                            <Icon name="layers" className="w-4 h-4 text-teal-600" />
+                                            <i data-lucide="layers" class="w-4 h-4 text-teal-600"></i>
                                             បញ្ជីសេវាកម្មព្យាបាលដែលបានជ្រើសរើស
                                         </h4>
                                         <div class="border border-slate-200 rounded-xl overflow-hidden">
@@ -2134,7 +2137,7 @@
                                                                         class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                                                                         title="លុបសេវាកម្មនេះ"
                                                                     >
-                                                                        <Icon name="trash-2" className="w-4 h-4" />
+                                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -2151,24 +2154,25 @@
                                         </div>
                                     </div>
 
+                                    {/* Form: Add New Service to Patient */}
                                     <form onSubmit={submitAddService} class="bg-teal-50/70 p-4 rounded-2xl border border-teal-200 space-y-4">
                                         <div class="flex justify-between items-center">
                                             <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider flex items-center gap-1.5">
-                                                <Icon name="plus-circle" className="w-4 h-4" />
+                                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
                                                 បន្ថែមសេវាកម្មថ្មីចូលក្នុងវិក្កយបត្រនេះ
                                             </h4>
-                                            <button
-                                                type="button"
+                                            <button 
+                                                type="button" 
                                                 onClick={() => setIsManageServicesOpen(true)}
                                                 class="text-xs text-amber-700 hover:text-amber-800 font-bold flex items-center gap-1">
-                                                <Icon name="settings" className="w-3.5 h-3.5" />
+                                                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                                                 គ្រប់គ្រងកាតាឡុកសេវាកម្ម
                                             </button>
                                         </div>
 
                                         <div>
                                             <label class="block text-xs font-semibold text-teal-800 mb-1">ជ្រើសរើសពីសេវាកម្មដែលមានស្រាប់ (Preset):</label>
-                                            <select
+                                            <select 
                                                 onChange={(e) => handleSelectPresetService(e.target.value)}
                                                 class="w-full border border-teal-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-teal-500 bg-white">
                                                 <option value="">-- ចុចជ្រើសរើសសេវាកម្មពីកាតាឡុក --</option>
@@ -2183,8 +2187,8 @@
                                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div class="sm:col-span-2">
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ឈ្មោះសេវាកម្ម *</label>
-                                                <input
-                                                    type="text"
+                                                <input 
+                                                    type="text" 
                                                     required
                                                     placeholder="ឈ្មោះសេវាកម្មព្យាបាល..."
                                                     value={newService.name}
@@ -2194,11 +2198,10 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">តម្លៃ (USD) *</label>
-                                                <input
-                                                    type="number"
+                                                <input 
+                                                    type="number" 
                                                     required
                                                     min="0"
-                                                    step="0.01"
                                                     placeholder="0.00"
                                                     value={newService.price}
                                                     onChange={(e) => setNewService({ ...newService, price: e.target.value })}
@@ -2207,17 +2210,17 @@
                                             </div>
                                         </div>
 
-                                        <ToothSelector
+                                        <ToothSelector 
                                             label="ជ្រើសរើសលេខធ្មេញបន្ថែម (រំកិលឆ្វេងស្តាំ):"
                                             selectedTeeth={newService.teeth}
                                             onToggleTooth={handleToggleServiceTooth}
                                         />
 
                                         <div class="flex justify-end">
-                                            <button
-                                                type="submit"
+                                            <button 
+                                                type="submit" 
                                                 class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition flex items-center gap-1">
-                                                <Icon name="plus" className="w-4 h-4" />
+                                                <i data-lucide="plus" class="w-4 h-4"></i>
                                                 + បន្ថែមសេវាកម្មនេះ
                                             </button>
                                         </div>
@@ -2225,18 +2228,19 @@
                                 </div>
                             )}
 
+                            {/* TAB 2: APPOINTMENTS */}
                             {activeTab === 'appointments' && (
                                 <div class="space-y-6">
                                     <form onSubmit={submitAddAppointment} class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                                         <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                            <Icon name="calendar-plus" className="w-4 h-4 text-teal-600" />
+                                            <i data-lucide="calendar-plus" class="w-4 h-4 text-teal-600"></i>
                                             បន្ថែមការណាត់ជួបថ្មីសម្រាប់អ្នកជំងឺនេះ
                                         </h4>
                                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">កាលបរិច្ឆេទ *</label>
-                                                <input
-                                                    type="date"
+                                                <input 
+                                                    type="date" 
                                                     required
                                                     value={newApp.date}
                                                     onChange={(e) => setNewApp({ ...newApp, date: e.target.value })}
@@ -2245,8 +2249,8 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ម៉ោងណាត់ជួប</label>
-                                                <input
-                                                    type="time"
+                                                <input 
+                                                    type="time" 
                                                     value={newApp.time}
                                                     onChange={(e) => setNewApp({ ...newApp, time: e.target.value })}
                                                     class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-teal-500 bg-white"
@@ -2254,8 +2258,8 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">បរិយាយ</label>
-                                                <input
-                                                    type="text"
+                                                <input 
+                                                    type="text" 
                                                     placeholder="ឧទាហរណ៍: សារ៉េដែកពត់ធ្មេញ"
                                                     value={newApp.note}
                                                     onChange={(e) => setNewApp({ ...newApp, note: e.target.value })}
@@ -2264,8 +2268,8 @@
                                             </div>
                                         </div>
                                         <div class="flex justify-end pt-1">
-                                            <button
-                                                type="submit"
+                                            <button 
+                                                type="submit" 
                                                 class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition">
                                                 + រក្សាទុកការណាត់ជួប
                                             </button>
@@ -2294,7 +2298,7 @@
                                                             </td>
                                                             <td class="py-3 px-4 text-slate-700">{app.note || 'ការណាត់ជួបពិនិត្យ'}</td>
                                                             <td class="py-3 px-4">
-                                                                <button
+                                                                <button 
                                                                     onClick={() => onToggleAppointmentStatus(patient.id, app.id)}
                                                                     class={`px-2.5 py-1 rounded-full text-[11px] font-bold ${app.status === 'រួចរាល់' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                                                                     {app.status}
@@ -2309,21 +2313,21 @@
                                 </div>
                             )}
 
+                            {/* TAB 3: PAYMENTS HISTORY */}
                             {activeTab === 'payments' && (
                                 <div class="space-y-6">
                                     <form onSubmit={submitAddPayment} class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200 space-y-3">
                                         <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
-                                            <Icon name="wallet" className="w-4 h-4" />
+                                            <i data-lucide="wallet" class="w-4 h-4"></i>
                                             បង់ប្រាក់បន្ថែម / កក់បន្ថែម
                                         </h4>
                                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ចំនួនប្រាក់ (USD) *</label>
-                                                <input
-                                                    type="number"
+                                                <input 
+                                                    type="number" 
                                                     required
-                                                    min="0"
-                                                    step="0.01"
+                                                    min="1"
                                                     placeholder="0.00"
                                                     value={newPay.amount}
                                                     onChange={(e) => setNewPay({ ...newPay, amount: e.target.value })}
@@ -2332,8 +2336,8 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">ថ្ងៃបង់ប្រាក់</label>
-                                                <input
-                                                    type="date"
+                                                <input 
+                                                    type="date" 
                                                     value={newPay.date}
                                                     onChange={(e) => setNewPay({ ...newPay, date: e.target.value })}
                                                     class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-teal-500 bg-white"
@@ -2341,8 +2345,8 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-slate-600 mb-1">កំណត់សម្គាល់/វិធីសាស្ត្រ</label>
-                                                <input
-                                                    type="text"
+                                                <input 
+                                                    type="text" 
                                                     placeholder="សាច់ប្រាក់ / វេរធនាគារ..."
                                                     value={newPay.note}
                                                     onChange={(e) => setNewPay({ ...newPay, note: e.target.value })}
@@ -2351,8 +2355,8 @@
                                             </div>
                                         </div>
                                         <div class="flex justify-end pt-1">
-                                            <button
-                                                type="submit"
+                                            <button 
+                                                type="submit" 
                                                 class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition">
                                                 + រក្សាទុកការបង់ប្រាក់
                                             </button>
@@ -2390,8 +2394,9 @@
 
                         </div>
 
+                        {/* Modal Footer */}
                         <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-                            <button
+                            <button 
                                 onClick={onClose}
                                 class="px-5 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl text-xs font-bold shadow">
                                 រួចរាល់
@@ -2414,16 +2419,18 @@
                     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col no-print my-auto">
                         <div class="bg-slate-800 px-5 py-3 text-white flex justify-between items-center">
                             <span class="text-xs font-bold flex items-center gap-1.5">
-                                <Icon name="printer" className="w-4 h-4 text-amber-400" />
+                                <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
                                 មើលគំរូវិក្កយបត្រ POS (80mm)
                             </span>
                             <button onClick={onClose} class="text-slate-400 hover:text-white">
-                                <Icon name="x" className="w-5 h-5" />
+                                <i data-lucide="x" class="w-5 h-5"></i>
                             </button>
                         </div>
 
+                        {/* Thermal Print Preview Container */}
                         <div class="p-6 bg-slate-100 flex justify-center">
                             <div class="pos-printable-area bg-white p-4 shadow-md w-full max-w-[80mm] text-slate-900 text-[11px] leading-tight border border-slate-200 rounded">
+                                {/* Header */}
                                 <div class="text-center pb-2 border-b border-dashed border-slate-400">
                                     <h2 class="text-sm font-extrabold uppercase">{clinicInfo.name}</h2>
                                     <p class="text-[10px] text-slate-600 mt-0.5">{clinicInfo.address}</p>
@@ -2431,6 +2438,7 @@
                                     <p class="text-xs font-bold mt-2 uppercase underline">វិក្កយបត្រ / RECEIPT</p>
                                 </div>
 
+                                {/* Patient Info */}
                                 <div class="py-2 border-b border-dashed border-slate-400 space-y-1 text-[10px]">
                                     <div class="flex justify-between">
                                         <span>លេខកូដ: <strong>{patient.id}</strong></span>
@@ -2440,6 +2448,7 @@
                                     <div>លេខទូរស័ព្ទ: <strong>{patient.phone}</strong></div>
                                 </div>
 
+                                {/* Itemized Services */}
                                 <div class="py-2 border-b border-dashed border-slate-400">
                                     <table class="w-full text-left text-[10px]">
                                         <thead>
@@ -2468,6 +2477,7 @@
                                     </table>
                                 </div>
 
+                                {/* Payment Breakdown */}
                                 <div class="py-2 border-b border-dashed border-slate-400 space-y-1 text-[10px]">
                                     <div class="flex justify-between font-bold">
                                         <span>តម្លៃសេវាកម្មសរុប:</span>
@@ -2483,6 +2493,7 @@
                                     </div>
                                 </div>
 
+                                {/* Footer */}
                                 <div class="text-center pt-3 text-[9px] text-slate-500 italic space-y-1">
                                     <p>{clinicInfo.footerNote}</p>
                                     <p class="font-bold text-[8px] tracking-wider text-slate-400 pt-1">*** POWERED BY DENTAL CLINIC POS ***</p>
@@ -2490,16 +2501,17 @@
                             </div>
                         </div>
 
+                        {/* Action Buttons */}
                         <div class="p-4 bg-white border-t border-slate-200 flex justify-end gap-2">
-                            <button
+                            <button 
                                 onClick={onClose}
                                 class="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-medium">
                                 បិទ
                             </button>
-                            <button
+                            <button 
                                 onClick={handlePrint}
                                 class="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-xl text-xs shadow flex items-center gap-1.5">
-                                <Icon name="printer" className="w-4 h-4" />
+                                <i data-lucide="printer" class="w-4 h-4"></i>
                                 <span>បោះពុម្ពវិក្កយបត្រ</span>
                             </button>
                         </div>
@@ -2507,11 +2519,13 @@
                 </div>
             );
         }
-const container = document.getElementById('root');
-        if (container) {
+
+        window.onload = function() {
+            const container = document.getElementById('root');
             const root = ReactDOM.createRoot(container);
             root.render(<App />);
-        }
+        };
     </script>
 </body>
 </html>
+
