@@ -1,1433 +1,844 @@
 <!DOCTYPE html>
 <html lang="km">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ប្រព័ន្ធគ្រប់គ្រងគ្លីនិកធ្មេញ - Dental Clinic Management POS</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
-
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <style>
-        body { font-family: 'Kantumruy Pro', sans-serif; background-color: #f8fafc; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
-
-        @media print {
-            body * { visibility: hidden; }
-            .pos-printable-area, .pos-printable-area * { visibility: visible; }
-            .pos-printable-area {
-                position: absolute; left: 0; top: 0;
-                width: 80mm !important; max-width: 80mm !important;
-                margin: 0 auto; padding: 4mm;
-                background: #ffffff !important; color: #000000 !important;
-                font-size: 11px !important; box-shadow: none !important; border: none !important;
-            }
-            .no-print { display: none !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dental Clinic Management POS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300..700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  body { font-family:'Kantumruy Pro',sans-serif; background-color:#f8fafc; }
+  ::-webkit-scrollbar { width:6px;height:6px; }
+  ::-webkit-scrollbar-track { background:#f1f5f9; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:4px; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px);} to{opacity:1;transform:translateY(0);} }
+  .animate-fadeIn { animation:fadeIn .2s ease-out; }
+  @media print {
+    body * { visibility:hidden; }
+    .pos-printable-area, .pos-printable-area * { visibility:visible; }
+    .pos-printable-area { position:absolute;left:0;top:0;width:80mm!important;max-width:80mm!important;padding:4mm;background:#fff!important;color:#000!important;font-size:11px!important;box-shadow:none!important;border:none!important; }
+    .no-print { display:none!important; }
+  }
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen selection:bg-teal-100 selection:text-teal-800">
-    <div id="root"></div>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, Component } = React;
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo, Component } = React;
+/* ========== CONSTANTS ========== */
+const UPPER_TEETH_RIGHT=[18,17,16,15,14,13,12,11];
+const UPPER_TEETH_LEFT=[21,22,23,24,25,26,27,28];
+const LOWER_TEETH_LEFT=[31,32,33,34,35,36,37,38];
+const LOWER_TEETH_RIGHT=[48,47,46,45,44,43,42,41];
+const KHMER_MONTHS=['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
 
-        /* ===================== CONSTANTS ===================== */
-        const UPPER_TEETH_RIGHT = [18, 17, 16, 15, 14, 13, 12, 11];
-        const UPPER_TEETH_LEFT  = [21, 22, 23, 24, 25, 26, 27, 28];
-        const LOWER_TEETH_LEFT  = [31, 32, 33, 34, 35, 36, 37, 38];
-        const LOWER_TEETH_RIGHT = [48, 47, 46, 45, 44, 43, 42, 41];
+const safeGetStorage=(k,f)=>{try{const i=localStorage.getItem(k);return i?JSON.parse(i):f;}catch(e){return f;}};
+const safeSetStorage=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const formatMoney=(a)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(a||0);
+const formatDate=(s)=>{if(!s)return'';const d=new Date(s);return isNaN(d.getTime())?s:d.toLocaleDateString('km-KH',{year:'numeric',month:'short',day:'numeric'});};
+const getTodayIso=()=>new Date().toISOString().split('T')[0];
+const khmerMonthToIso=(str)=>{if(!str)return'';const p=str.split(' ');if(p.length<2)return'';const idx=KHMER_MONTHS.indexOf(p[0]);if(idx<0)return'';return `${p[1]}-${String(idx+1).padStart(2,'0')}`;};
 
-        const KHMER_MONTHS = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+const INITIAL_CLINIC_INFO={
+  name:"គ្លីនិកធ្មេញ ឡុង ហៃសេង",
+  subtitle:"គុណភាព សុភ័ណភាព និងអនាម័យ",
+  phone:"012 659 871 / 087 567 439 / 071 882 9171",
+  address:"ទល់មុខផ្សារទ្រីភាព (ខាងត្បូងផ្សារ)",
+  footerNote:"សូមអរគុណចំពោះការគាំទ្រ! សូមជូនពរសុខភាពល្អ!"
+};
+const INITIAL_PRESET_SERVICES=[
+  {id:"cat-1",name:"ប៉ះធ្មេញ (Composite Fillings)",price:50},
+  {id:"cat-2",name:"ដកធ្មេញ (Tooth Extraction)",price:30},
+  {id:"cat-3",name:"លាងសម្អាតកោសកែរ (Scaling)",price:30},
+  {id:"cat-4",name:"ខាត់ធ្មេញឲ្យស (Whitening)",price:80},
+  {id:"cat-5",name:"ព្យាបាលឫសធ្មេញ (Root Canal)",price:120},
+  {id:"cat-6",name:"ដាក់ក្បាលធ្មេញ (Crown)",price:250},
+  {id:"cat-7",name:"ពត់ធ្មេញ (Orthodontics)",price:1200},
+  {id:"cat-8",name:"ដាំធ្មេញ (Dental Implant)",price:800}
+];
+const INITIAL_PATIENTS=[
+  {
+    id:"P-1001",name:"សុក សុភា",phone:"012 345 678",gender:"ស្រី",age:28,
+    services:[
+      {id:"s1",name:"ប៉ះធ្មេញ (Composite Fillings)",teeth:[16,17],price:100},
+      {id:"s2",name:"ដាក់ក្បាលធ្មេញ (Crown)",teeth:[26],price:250}
+    ],
+    createdAt:getTodayIso(),
+    notes:"ធ្មេញលេខ ១៦ មានការឈឺចាប់",
+    appointments:[
+      {id:"a1",date:getTodayIso(),time:"09:00",note:"ពិនិត្យដំបូង",status:"រួចរាល់"},
+      {id:"a2",date:"2026-10-15",time:"14:00",note:"ដាំក្បាលធ្មេញ Crown",status:"កំពុងរង់ចាំ"}
+    ],
+    payments:[{id:"p1",amount:150,date:getTodayIso(),note:"ប្រាក់កក់លើកទី១"}]
+  },
+  {
+    id:"P-1002",name:"ចាន់ វីរៈ",phone:"098 765 432",gender:"ប្រុស",age:34,
+    services:[{id:"s3",name:"ពត់ធ្មេញ (Orthodontics)",teeth:[11,12,13,21,22,23],price:1200}],
+    createdAt:"2026-09-25",notes:"កញ្ចប់ពត់ធ្មេញ ២ឆ្នាំ",
+    appointments:[
+      {id:"a3",date:"2026-09-25",time:"10:30",note:"បំពាក់ឧបករណ៍",status:"រួចរាល់"},
+      {id:"a4",date:getTodayIso(),time:"11:00",note:"សារ៉េដែកប្រចាំខែ",status:"កំពុងរង់ចាំ"}
+    ],
+    payments:[
+      {id:"p2",amount:400,date:"2026-09-25",note:"ប្រាក់កក់ដំបូង"},
+      {id:"p3",amount:100,date:getTodayIso(),note:"បង់បន្ថែមប្រចាំខែ"}
+    ]
+  }
+];
 
-        const safeGetStorage = (key, fallback) => {
-            try { const item = localStorage.getItem(key); return item ? JSON.parse(item) : fallback; }
-            catch (e) { console.warn(e); return fallback; }
-        };
-        const safeSetStorage = (key, value) => {
-            try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.warn(e); }
-        };
-        const formatMoney = (amt) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amt || 0);
-        const formatDate = (s) => {
-            if (!s) return '';
-            const d = new Date(s);
-            if (isNaN(d.getTime())) return s;
-            return d.toLocaleDateString('km-KH', { year: 'numeric', month: 'short', day: 'numeric' });
-        };
-        const getTodayIso = () => new Date().toISOString().split('T')[0];
+/* ========== ICONS (ទាំងអស់ជា inline SVG) ========== */
+const SvgIcon=({d,cls="w-4 h-4"})=>(
+  <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={d}/>
+  </svg>
+);
+const Icons={
+  Tooth:()=><SvgIcon cls="w-5 h-5 inline-block" d="M12 2C8 2 6 5 6 8c0 4 2 8 3 11 1 2 2 3 3 3s2-1 3-3c1-3 3-7 3-11 0-3-2-6-6-6z"/>,
+  Search:()=><SvgIcon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>,
+  Plus:()=><SvgIcon d="M12 4v16m8-8H4"/>,
+  Calendar:()=><SvgIcon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>,
+  Printer:()=><SvgIcon d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>,
+  Dollar:()=><SvgIcon d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 12v-2m0 0c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>,
+  Settings:()=><SvgIcon d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>,
+  Edit:()=><SvgIcon d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>,
+  Trash:()=><SvgIcon d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>,
+  Chart:()=><SvgIcon cls="w-4 h-4 inline-block" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 012 2h2a2 2 0 012-2z"/>,
+  BarChart3:()=><SvgIcon cls="w-4 h-4 inline-block" d="M3 3v18h18M7 16v-4m5 4V8m5 8v-6"/>,
+  ChevronDown:()=><SvgIcon cls="w-3.5 h-3.5" d="M19 9l-7 7-7-7"/>,
+  Sparkles:()=><SvgIcon cls="w-5 h-5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>,
+  Users:()=><SvgIcon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+};
 
-        // Convert "តុលា 2026" -> "2026-10"
-        const khmerMonthToIso = (str) => {
-            if (!str) return '';
-            const [mName, y] = str.split(' ');
-            const idx = KHMER_MONTHS.indexOf(mName);
-            if (idx < 0 || !y) return '';
-            return `${y}-${String(idx + 1).padStart(2, '0')}`;
-        };
-        // Convert "2026-10" -> "តុលា 2026"
-        const isoToKhmerMonth = (iso) => {
-            if (!iso) return '';
-            const [y, m] = iso.split('-');
-            return `${KHMER_MONTHS[parseInt(m) - 1]} ${y}`;
-        };
+/* ========== TOOTH SELECTOR ========== */
+function ToothSelector({selectedTeeth=[],onToggleTooth,label}){
+  const renderTooth=(t)=>{
+    const s=selectedTeeth.includes(t);
+    return (
+      <button type="button" key={t} onClick={()=>onToggleTooth(t)}
+        className={`w-7 h-7 rounded-lg text-xs font-bold transition flex items-center justify-center border cursor-pointer ${s?'bg-teal-600 text-white border-teal-700 shadow-sm scale-105':'bg-white text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50'}`}>
+        {t}
+      </button>
+    );
+  };
+  return (
+    <div className="space-y-1">
+      {label&&<label className="block text-xs font-semibold text-slate-700 mb-1">{label}</label>}
+      <div className="bg-slate-100/90 p-3 rounded-2xl border border-slate-200 overflow-x-auto max-w-full">
+        <div className="min-w-max flex flex-col items-center gap-2">
+          <div className="flex items-center gap-1 flex-nowrap">
+            <span className="text-[11px] font-bold text-teal-700 mr-1 w-10 text-right">លើ:</span>
+            <div className="flex items-center gap-1">{UPPER_TEETH_RIGHT.map(renderTooth)}</div>
+            <div className="w-px h-6 bg-slate-300 mx-1.5"></div>
+            <div className="flex items-center gap-1">{UPPER_TEETH_LEFT.map(renderTooth)}</div>
+          </div>
+          <div className="w-full border-t border-slate-200 my-0.5"></div>
+          <div className="flex items-center gap-1 flex-nowrap">
+            <span className="text-[11px] font-bold text-teal-700 mr-1 w-10 text-right">ក្រោម:</span>
+            <div className="flex items-center gap-1">{LOWER_TEETH_RIGHT.map(renderTooth)}</div>
+            <div className="w-px h-6 bg-slate-300 mx-1.5"></div>
+            <div className="flex items-center gap-1">{LOWER_TEETH_LEFT.map(renderTooth)}</div>
+          </div>
+        </div>
+      </div>
+      <p className="text-[11px] text-teal-700 font-semibold pt-1">
+        ធ្មេញជ្រើសរើស: {selectedTeeth.length>0?selectedTeeth.slice().sort((a,b)=>a-b).join(', '):'គ្មាន (ទូទៅ)'}
+      </p>
+    </div>
+  );
+}
 
-        const INITIAL_CLINIC_INFO = {
-            name: "គ្លីនិកធ្មេញ ឡុង ហៃសេង",
-            subtitle: "គុណភាព សុភ័ណភាព និងអនាម័យ",
-            phone: "012 659 871 / 087 567 439 / 071 882 9171",
-            address: "ទល់មុខផ្សារទ្រីភាព (ខាងត្បូងផ្សារ)",
-            footerNote: "សូមអរគុណចំពោះការគាំទ្រ! សូមជូនពរសុខភាពល្អ និងស្នាមញញឹមស្រស់ថ្លា!"
-        };
+/* ============================================================
+   REPORTS VIEW (កូដទី២ — ភ្ជាប់ទៅទិន្នន័យពិត)
+   ============================================================ */
+function ReportsView({patients,clinicInfo}){
+  const today=new Date();
+  const currentYear=today.getFullYear();
+  const currentMonthIndex=today.getMonth();
+  const currentDayFormatted=today.toISOString().split('T')[0];
+  const defaultMonthStr=`${KHMER_MONTHS[currentMonthIndex]} ${currentYear}`;
 
-        const INITIAL_PRESET_SERVICES = [
-            { id: "cat-1", name: "ប៉ះធ្មេញ (Composite Fillings)", price: 50 },
-            { id: "cat-2", name: "ដកធ្មេញ (Tooth Extraction)", price: 30 },
-            { id: "cat-3", name: "លាងសម្អាតកោសកែរ (Scaling & Cleaning)", price: 30 },
-            { id: "cat-4", name: "ខាត់ធ្មេញឲ្យស (Teeth Whitening)", price: 80 },
-            { id: "cat-5", name: "ព្យាបាលឫសធ្មេញ (Root Canal Treatment)", price: 120 },
-            { id: "cat-6", name: "ដាក់ក្បាលធ្មេញ (Crown)", price: 250 },
-            { id: "cat-7", name: "ពត់ធ្មេញ (Orthodontics)", price: 1200 },
-            { id: "cat-8", name: "ដាំធ្មេញ (Dental Implant)", price: 800 }
-        ];
+  const [reportType,setReportType]=useState('monthly');
+  const [selectedDate,setSelectedDate]=useState(currentDayFormatted);
+  const [selectedMonth,setSelectedMonth]=useState(defaultMonthStr);
+  const [isPickerOpen,setIsPickerOpen]=useState(false);
 
-        const INITIAL_PATIENTS = [
-            {
-                id: "P-1001", name: "សុក សុភា", phone: "012 345 678", gender: "ស្រី", age: 28,
-                services: [
-                    { id: "s1", name: "ប៉ះធ្មេញ (Composite Fillings)", teeth: [16, 17], price: 100 },
-                    { id: "s2", name: "ដាក់ក្បាលធ្មេញ (Crown)", teeth: [26], price: 250 }
-                ],
-                createdAt: getTodayIso(),
-                notes: "ធ្មេញលេខ ១៦ មានការឈឺចាប់ពេលញ៉ាំទឹកកក",
-                appointments: [
-                    { id: "a1", date: getTodayIso(), time: "09:00", note: "ពិនិត្យដំបូង និងសម្អាតធ្មេញ", status: "រួចរាល់" },
-                    { id: "a2", date: "2026-10-15", time: "14:00", note: "ដាំក្បាលធ្មេញ Crown", status: "កំពុងរង់ចាំ" }
-                ],
-                payments: [
-                    { id: "p1", amount: 150, date: getTodayIso(), note: "ប្រាក់កក់លើកទី១ (សាច់ប្រាក់)" }
-                ]
-            },
-            {
-                id: "P-1002", name: "ចាន់ វីរៈ", phone: "098 765 432", gender: "ប្រុស", age: 34,
-                services: [ { id: "s3", name: "ពត់ធ្មេញ (Orthodontics)", teeth: [11,12,13,21,22,23], price: 1200 } ],
-                createdAt: "2026-09-25",
-                notes: "កញ្ចប់ពត់ធ្មេញ ២ឆ្នាំ",
-                appointments: [
-                    { id: "a3", date: "2026-09-25", time: "10:30", note: "បំពាក់ឧបករណ៍ពត់ធ្មេញ", status: "រួចរាល់" },
-                    { id: "a4", date: getTodayIso(), time: "11:00", note: "សារ៉េដែកពត់ធ្មេញប្រចាំខែ", status: "កំពុងរង់ចាំ" }
-                ],
-                payments: [
-                    { id: "p2", amount: 400, date: "2026-09-25", note: "ប្រាក់កក់ដំបូង" },
-                    { id: "p3", amount: 100, date: getTodayIso(), note: "បង់បន្ថែមប្រចាំខែ" }
-                ]
-            }
-        ];
+  const generateOptions=()=>{
+    const opts=[];
+    if(reportType==='monthly'){
+      for(let y=currentYear-2;y<=currentYear+10;y++)
+        for(let m=0;m<12;m++) opts.push(`${KHMER_MONTHS[m]} ${y}`);
+    } else {
+      for(let i=0;i<60;i++){
+        const d=new Date();d.setDate(today.getDate()-i);
+        opts.push(d.toISOString().split('T')[0]);
+      }
+    }
+    return opts;
+  };
+  const options=generateOptions();
 
-        /* ===================== ICONS ===================== */
-        const Icons = {
-            Tooth: () => (
-                <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2C8 2 6 5 6 8c0 4 2 8 3 11 1 2 2 3 3 3s2-1 3-3c1-3 3-7 3-11 0-3-2-6-6-6z" />
-                </svg>
-            ),
-            Search: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            ),
-            Plus: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-            ),
-            Calendar: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-            ),
-            Printer: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-            ),
-            Dollar: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 12v-2m0 0c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            ),
-            Settings: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                </svg>
-            ),
-            Edit: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-            ),
-            Trash: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            ),
-            Chart: () => (
-                <svg className="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 012 2h2a2 2 0 012-2z" />
-                </svg>
-            ),
-            // Icons ថ្មីដែលយកពីកូដទី២
-            BarChart3: () => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18M7 16v-4m5 4V8m5 8v-6" />
-                </svg>
-            ),
-            ChevronDown: () => (
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            ),
-            Sparkles: () => (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-            )
-        };
+  // ISO key for filtering: daily="2026-10-06", monthly="2026-10"
+  const filterKey = reportType==='daily' ? selectedDate : khmerMonthToIso(selectedMonth);
+  const inRange=(ds)=>ds && ds.startsWith(filterKey);
 
-        /* ===================== TOOTH SELECTOR ===================== */
-        function ToothSelector({ selectedTeeth = [], onToggleTooth, label }) {
-            const renderTooth = (t) => {
-                const isSel = selectedTeeth.includes(t);
+  const payments=patients.flatMap(p=>(p.payments||[]).map(pm=>({...pm,patientName:p.name,patientPhone:p.phone})))
+                          .filter(pm=>inRange(pm.date));
+  const newPats=patients.filter(p=>inRange(p.createdAt));
+  const apps=patients.flatMap(p=>(p.appointments||[]).map(a=>({...a,patientName:p.name,patientPhone:p.phone})))
+                       .filter(a=>inRange(a.date));
+
+  const totalRevenue=payments.reduce((s,p)=>s+p.amount,0);
+  const completedApps=apps.filter(a=>a.status==='រួចរាល់');
+  const newServicesBilled=newPats.reduce((s,p)=>s+(p.services||[]).reduce((ss,sv)=>ss+sv.price,0),0);
+  const avgRevenue=payments.length>0?totalRevenue/payments.length:0;
+
+  const title = reportType==='daily' ? 'របាយការណ៍បូកសរុបប្រចាំថ្ងៃ' : 'របាយការណ៍បូកសរុបប្រចាំខែ';
+  const subtitle = reportType==='daily'
+    ? 'តាមការចំណូល ចំនួនអ្នកជំងឺ និងការណាត់ជួបប្រចាំថ្ងៃ'
+    : 'តាមការចំណូល ចំនួនអ្នកជំងឺ និងការណាត់ជួបប្រចាំខែ';
+  const periodLabel = reportType==='daily' ? `កាលបរិច្ឆេទ: ${selectedDate}` : `ខែ: ${selectedMonth}`;
+
+  const handlePrintPOS=()=>{
+    const w=window.open('','_blank','width=350,height=600');
+    if(!w) return;
+    w.document.write(`
+      <html><head><title>POS - ${title}</title>
+      <style>
+        body{font-family:'Courier New',monospace;width:300px;margin:0 auto;padding:10px;color:#000;background:#fff;}
+        .center{text-align:center;} .bold{font-weight:bold;}
+        .line{border-bottom:1px dashed #000;margin:8px 0;}
+        .flex{display:flex;justify-content:space-between;}
+        .small{font-size:11px;} .title{font-size:14px;font-weight:bold;margin-bottom:4px;}
+      </style></head><body>
+      <div class="center title">${clinicInfo.name}</div>
+      <div class="center small">${clinicInfo.subtitle}</div>
+      <div class="line"></div>
+      <div class="center bold">${title}</div>
+      <div class="center small">${periodLabel}</div>
+      <div class="line"></div>
+      <div class="flex"><span>ប្រាក់ចំណូលសរុប:</span><span class="bold">${formatMoney(totalRevenue)}</span></div>
+      <div class="small" style="margin-bottom:6px;">ប្រតិបត្តិការបង់ប្រាក់: ${payments.length} លើក</div>
+      <div class="flex"><span>អ្នកជំងឺថ្មី:</span><span class="bold">${newPats.length} នាក់</span></div>
+      <div class="small" style="margin-bottom:6px;">ថ្លៃសេវា: ${formatMoney(newServicesBilled)}</div>
+      <div class="flex"><span>ការណាត់ជួប:</span><span class="bold">${apps.length} ដង</span></div>
+      <div class="small" style="margin-bottom:6px;">ព្យាបាលរួចរាល់: ${completedApps.length} ដង</div>
+      <div class="flex"><span>មធ្យមភាគ:</span><span class="bold">${formatMoney(avgRevenue)}</span></div>
+      <div class="line"></div>
+      <div class="center small">${clinicInfo.footerNote}</div>
+      <div class="center small">បោះពុម្ព: ${new Date().toLocaleString()}</div>
+      </body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(()=>{w.print();w.close();},300);
+  };
+
+  const handleSelect=(v)=>{
+    if(reportType==='daily') setSelectedDate(v);
+    else setSelectedMonth(v);
+    setIsPickerOpen(false);
+  };
+  const currentVal = reportType==='daily' ? selectedDate : selectedMonth;
+
+  return (
+    <div className="space-y-4">
+      {/* Toggle Daily/Monthly */}
+      <div className="bg-slate-200 p-1 rounded-xl flex shadow-inner no-print">
+        <button onClick={()=>{setReportType('daily');setIsPickerOpen(false);}}
+          className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${reportType==='daily'?'bg-teal-700 text-white shadow-md':'text-slate-600 hover:text-slate-900'}`}>
+          <Icons.Calendar/> របាយការណ៍ប្រចាំថ្ងៃ
+        </button>
+        <button onClick={()=>{setReportType('monthly');setIsPickerOpen(false);}}
+          className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${reportType==='monthly'?'bg-teal-700 text-white shadow-md':'text-slate-600 hover:text-slate-900'}`}>
+          <Icons.BarChart3/> របាយការណ៍ប្រចាំខែ
+        </button>
+      </div>
+
+      {/* Header + picker + print */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <span className="text-teal-600"><Icons.BarChart3/></span> {title}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+        </div>
+        <div className="flex items-center justify-between pt-2 gap-2 flex-wrap">
+          <div className="relative inline-block">
+            <button onClick={()=>setIsPickerOpen(!isPickerOpen)}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-sm cursor-pointer">
+              <span>{reportType==='daily'?`កាលបរិច្ឆេទ: ${selectedDate}`:`ខែ: ${selectedMonth}`}</span>
+              <span className={`text-slate-400 transition-transform ${isPickerOpen?'rotate-180':''}`}>
+                <Icons.ChevronDown/>
+              </span>
+            </button>
+            {isPickerOpen && (
+              <div className="absolute left-0 mt-2 w-52 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1">
+                <div className="text-[10px] text-slate-400 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-white">
+                  {reportType==='daily'?'ជ្រើសរើសថ្ងៃ':'ជ្រើសរើសខែ និងឆ្នាំ'}
+                </div>
+                {options.map(item=>(
+                  <button key={item} onClick={()=>handleSelect(item)}
+                    className={`w-full text-left px-3 py-2 text-xs rounded-lg transition cursor-pointer ${currentVal===item?'bg-teal-700 text-white font-bold':'text-slate-700 hover:bg-slate-100'}`}>
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={handlePrintPOS}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-sm cursor-pointer">
+            <Icons.Printer/> បោះពុម្ព POS
+          </button>
+        </div>
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-emerald-600 text-white rounded-2xl p-5 shadow-sm space-y-2 relative overflow-hidden">
+          <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-24 h-24 bg-emerald-500/30 rounded-full blur-xl pointer-events-none"></div>
+          <p className="text-xs font-medium text-emerald-100">ប្រាក់ចំណូលទទួលបានសរុប</p>
+          <div className="text-3xl font-extrabold tracking-tight">{formatMoney(totalRevenue)}</div>
+          <div className="border-t border-emerald-500/50 pt-2 text-xs text-emerald-100">
+            ប្រតិបត្តិការបង់ប្រាក់: {payments.length} លើក
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-1">
+          <p className="text-xs text-slate-500 font-medium">អ្នកជំងឺចុះឈ្មោះថ្មី</p>
+          <div className="text-2xl font-bold text-slate-800">{newPats.length} នាក់</div>
+          <p className="text-xs text-slate-400 pt-1">ថ្លៃសេវាបម្រើការ: {formatMoney(newServicesBilled)}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-1">
+          <p className="text-xs text-slate-500 font-medium">
+            ការណាត់ជួបក្នុង{reportType==='daily'?'ថ្ងៃ':'ខែ'}
+          </p>
+          <div className="text-2xl font-bold text-slate-800">{apps.length} ដង</div>
+          <p className="text-xs text-slate-400 pt-1">ព្យាបាលរួចរាល់: {completedApps.length} ដង</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-1">
+          <p className="text-xs text-slate-500 font-medium">មធ្យមភាគចំណូល/ប្រតិបត្តិការ</p>
+          <div className="text-2xl font-bold text-slate-800">{formatMoney(avgRevenue)}</div>
+        </div>
+      </div>
+
+      {/* Payment table */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="flex justify-between items-center border-b border-slate-100 pb-3 flex-wrap gap-2">
+          <h3 className="font-bold text-slate-800 text-sm">
+            ប្រវត្តិប្រមូលប្រាក់ ({payments.length} ប្រតិបត្តិការ)
+          </h3>
+          <span className="text-xs font-bold text-emerald-700">សរុប: {formatMoney(totalRevenue)}</span>
+        </div>
+        {payments.length===0 ? (
+          <div className="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            មិនមានទិន្នន័យសម្រាប់ {reportType==='daily'?selectedDate:selectedMonth}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                  <th className="p-3 rounded-l-xl">កាលបរិច្ឆេទ</th>
+                  <th className="p-3">ឈ្មោះអ្នកជំងឺ</th>
+                  <th className="p-3">ទូរស័ព្ទ</th>
+                  <th className="p-3">កត់ចំណាំ</th>
+                  <th className="p-3 text-right rounded-r-xl">ទឹកប្រាក់</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {payments.map((pm,i)=>(
+                  <tr key={i} className="hover:bg-slate-50/80">
+                    <td className="p-3 font-semibold text-slate-700">{formatDate(pm.date)}</td>
+                    <td className="p-3 font-bold text-slate-900">{pm.patientName}</td>
+                    <td className="p-3 text-slate-500">{pm.patientPhone}</td>
+                    <td className="p-3 text-slate-600">{pm.note||'បង់ប្រាក់'}</td>
+                    <td className="p-3 text-right font-bold text-emerald-700">{formatMoney(pm.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   MAIN APP (កូដទី១ + ភ្ជាប់ ReportsView)
+   ============================================================ */
+function App(){
+  const [clinicInfo,setClinicInfo]=useState(()=>safeGetStorage('dental_clinic_info',INITIAL_CLINIC_INFO));
+  const [presetServices,setPresetServices]=useState(()=>safeGetStorage('dental_preset_services',INITIAL_PRESET_SERVICES));
+  const [patients,setPatients]=useState(()=>safeGetStorage('dental_patients_data',INITIAL_PATIENTS));
+
+  const [currentView,setCurrentView]=useState("patients");
+  const [searchTerm,setSearchTerm]=useState("");
+  const [selectedPatientId,setSelectedPatientId]=useState(null);
+  const [activeTab,setActiveTab]=useState("overview");
+  const [selectedFilterDate,setSelectedFilterDate]=useState("");
+
+  const [isRegisterOpen,setIsRegisterOpen]=useState(false);
+  const [editingPatient,setEditingPatient]=useState(null);
+  const [patientForm,setPatientForm]=useState({id:"",name:"",phone:"",gender:"ស្រី",age:"",services:[],deposit:"",firstAppDate:"",firstAppTime:"09:00",notes:""});
+  const [paymentModal,setPaymentModal]=useState({open:false,patient:null,amount:"",note:""});
+  const [newAppModal,setNewAppModal]=useState({open:false,patientId:"",date:getTodayIso(),time:"09:00",note:""});
+  const [confirmDeleteModal,setConfirmDeleteModal]=useState({open:false,type:"",targetId:"",title:"",text:""});
+  const [toastMessage,setToastMessage]=useState("");
+  const [posPatientModal,setPosPatientModal]=useState(null);
+  const [isServiceModalOpen,setIsServiceModalOpen]=useState(false);
+  const [serviceForm,setServiceForm]=useState({name:"",price:""});
+  const [editingService,setEditingService]=useState(null);
+  const [isClinicModalOpen,setIsClinicModalOpen]=useState(false);
+
+  useEffect(()=>{safeSetStorage('dental_clinic_info',clinicInfo);},[clinicInfo]);
+  useEffect(()=>{safeSetStorage('dental_preset_services',presetServices);},[presetServices]);
+  useEffect(()=>{safeSetStorage('dental_patients_data',patients);},[patients]);
+
+  const showToast=(m)=>{setToastMessage(m);setTimeout(()=>setToastMessage(""),3000);};
+
+  const openNewPatientModal=()=>{
+    setEditingPatient(null);
+    setPatientForm({id:"",name:"",phone:"",gender:"ស្រី",age:"",services:[{id:`s-${Date.now()}`,name:"",teeth:[],price:""}],deposit:"",firstAppDate:getTodayIso(),firstAppTime:"09:00",notes:""});
+    setIsRegisterOpen(true);
+  };
+  const openEditPatientModal=(p)=>{
+    setEditingPatient(p);
+    setPatientForm({id:p.id,name:p.name,phone:p.phone,gender:p.gender,age:p.age||"",services:p.services&&p.services.length>0?p.services:[{id:`s-${Date.now()}`,name:"",teeth:[],price:""}],deposit:"",firstAppDate:"",firstAppTime:"09:00",notes:p.notes||""});
+    setIsRegisterOpen(true);
+  };
+
+  const handleSavePatientSubmit=(e)=>{
+    e.preventDefault();
+    if(!patientForm.name||!patientForm.phone){showToast("សូមបញ្ចូលឈ្មោះ និងទូរស័ព្ទ!");return;}
+    const dep=parseFloat(patientForm.deposit)||0;
+    const fserv=patientForm.services.filter(s=>s.name.trim()!=="").map(s=>({id:s.id||`s-${Date.now()}-${Math.random()}`,name:s.name,teeth:s.teeth||[],price:parseFloat(s.price)||0}));
+    if(editingPatient){
+      setPatients(patients.map(p=>p.id===editingPatient.id?{...p,name:patientForm.name,phone:patientForm.phone,gender:patientForm.gender,age:parseInt(patientForm.age)||0,services:fserv,notes:patientForm.notes}:p));
+      showToast("បានកែប្រែ!");
+    } else {
+      const nid=`P-${Math.floor(1000+Math.random()*9000)}`;
+      const np={id:nid,name:patientForm.name,phone:patientForm.phone,gender:patientForm.gender,age:parseInt(patientForm.age)||0,services:fserv,createdAt:getTodayIso(),notes:patientForm.notes,appointments:patientForm.firstAppDate?[{id:`a-${Date.now()}`,date:patientForm.firstAppDate,time:patientForm.firstAppTime||"09:00",note:"ការណាត់ជួបលើកដំបូង",status:"កំពុងរង់ចាំ"}]:[],payments:dep>0?[{id:`p-${Date.now()}`,amount:dep,date:getTodayIso(),note:"ប្រាក់កក់ដំបូង"}]:[]};
+      setPatients([np,...patients]);setSelectedPatientId(nid);showToast("បានចុះឈ្មោះ!");
+    }
+    setIsRegisterOpen(false);
+  };
+
+  const handleDeletePatient=(id)=>setConfirmDeleteModal({open:true,type:"PATIENT",targetId:id,title:"លុបទិន្នន័យអ្នកជំងឺ",text:"តើអ្នកពិតជាចង់លុបទិន្នន័យអ្នកជំងឺនេះមែនទេ?"});
+
+  const confirmExecuteDelete=()=>{
+    const {type,targetId}=confirmDeleteModal;
+    if(type==="PATIENT"){
+      const rem=patients.filter(p=>p.id!==targetId);
+      setPatients(rem);
+      if(selectedPatientId===targetId) setSelectedPatientId(rem.length>0?rem[0].id:null);
+      showToast("បានលុបអ្នកជំងឺ!");
+    } else if(type==="SERVICE"){
+      setPresetServices(presetServices.filter(s=>s.id!==targetId));showToast("បានលុបសេវាកម្ម!");
+    } else if(type==="PAYMENT"){
+      setPatients(patients.map(p=>p.id===selectedPatientId?{...p,payments:p.payments.filter(pm=>pm.id!==targetId)}:p));showToast("បានលុបទូទាត់!");
+    } else if(type==="APPOINTMENT"){
+      setPatients(patients.map(p=>p.id===selectedPatientId?{...p,appointments:p.appointments.filter(a=>a.id!==targetId)}:p));showToast("បានលុបការណាត់ជួប!");
+    }
+    setConfirmDeleteModal({open:false,type:"",targetId:"",title:"",text:""});
+  };
+
+  const filteredPatients=useMemo(()=>patients.filter(p=>p.name.toLowerCase().includes(searchTerm.toLowerCase())||p.phone.includes(searchTerm)||p.id.toLowerCase().includes(searchTerm.toLowerCase())),[patients,searchTerm]);
+
+  const handleAddPayment=()=>{
+    if(!paymentModal.patient||!paymentModal.amount) return;
+    const amt=parseFloat(paymentModal.amount);if(amt<=0) return;
+    setPatients(patients.map(p=>p.id===paymentModal.patient.id?{...p,payments:[...p.payments,{id:`p-${Date.now()}`,amount:amt,date:getTodayIso(),note:paymentModal.note||"ការបង់ប្រាក់បន្ថែម"}]}:p));
+    setPaymentModal({open:false,patient:null,amount:"",note:""});showToast("បានកត់ត្រាទូទាត់!");
+  };
+
+  const handleAddAppointment=()=>{
+    if(!newAppModal.patientId) return;
+    setPatients(patients.map(p=>p.id===newAppModal.patientId?{...p,appointments:[...p.appointments,{id:`a-${Date.now()}`,date:newAppModal.date,time:newAppModal.time,note:newAppModal.note||"ការណាត់ជួប",status:"កំពុងរង់ចាំ"}]}:p));
+    setNewAppModal({open:false,patientId:"",date:getTodayIso(),time:"09:00",note:""});showToast("បានបន្ថែមការណាត់ជួប!");
+  };
+
+  const handleToggleAppointmentStatus=(pid,aid,st)=>{
+    setPatients(patients.map(p=>p.id===pid?{...p,appointments:p.appointments.map(a=>a.id===aid?{...a,status:st}:a)}:p));
+    showToast(`បានប្តូរទៅ៖ ${st}`);
+  };
+
+  const handleSaveServiceCatalog=(e)=>{
+    e.preventDefault();
+    if(!serviceForm.name||!serviceForm.price) return;
+    if(editingService){
+      setPresetServices(presetServices.map(s=>s.id===editingService.id?{...s,name:serviceForm.name,price:parseFloat(serviceForm.price)||0}:s));
+      showToast("បានបច្ចុប្បន្នភាព!");
+    } else {
+      setPresetServices([...presetServices,{id:`cat-${Date.now()}`,name:serviceForm.name,price:parseFloat(serviceForm.price)||0}]);
+      showToast("បានបន្ថែមសេវាកម្មថ្មី!");
+    }
+    setIsServiceModalOpen(false);setServiceForm({name:"",price:""});setEditingService(null);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* HEADER */}
+      <header className="bg-teal-700 text-white shadow-md sticky top-0 z-30 no-print">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-teal-200 border border-white/20">
+              <Icons.Tooth/>
+            </div>
+            <div>
+              <h1 className="font-bold text-lg leading-snug">{clinicInfo.name}</h1>
+              <p className="text-xs text-teal-200">{clinicInfo.subtitle}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={()=>setCurrentView("patients")} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${currentView==='patients'?'bg-white text-teal-800 shadow-sm':'hover:bg-teal-600 text-teal-100'}`}>
+              អ្នកជំងឺទាំងអស់
+            </button>
+            <button onClick={()=>setCurrentView("appointments")} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${currentView==='appointments'?'bg-white text-teal-800 shadow-sm':'hover:bg-teal-600 text-teal-100'}`}>
+              <Icons.Calendar/> តារាងណាត់ជួប
+            </button>
+            <button onClick={()=>setCurrentView("services")} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${currentView==='services'?'bg-white text-teal-800 shadow-sm':'hover:bg-teal-600 text-teal-100'}`}>
+              សេវាកម្ម និងតម្លៃ
+            </button>
+            <button onClick={()=>setCurrentView("reports")} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${currentView==='reports'?'bg-white text-teal-800 shadow-sm':'hover:bg-teal-600 text-teal-100'}`}>
+              <Icons.Chart/> របាយការណ៍
+            </button>
+            <button onClick={()=>setIsClinicModalOpen(true)} className="p-2.5 rounded-xl hover:bg-teal-600 text-teal-100 transition cursor-pointer" title="ការកំណត់">
+              <Icons.Settings/>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-medium border border-slate-700 flex items-center gap-2 no-print">
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          {toastMessage}
+        </div>
+      )}
+
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 no-print">
+        {/* ============ PATIENTS VIEW ============ */}
+        {currentView==="patients" && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-bold text-slate-800 text-base">បញ្ជីអ្នកជំងឺ ({filteredPatients.length})</h2>
+                <button onClick={openNewPatientModal} className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                  <Icons.Plus/> អ្នកជំងឺថ្មី
+                </button>
+              </div>
+              <div className="relative w-full sm:w-80">
+                <input type="text" placeholder="ស្វែងរក..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-teal-500"/>
+                <div className="absolute left-3 top-2.5 text-slate-400"><Icons.Search/></div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {filteredPatients.length===0 ? (
+                <div className="bg-white p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-200 text-xs">
+                  មិនមានទិន្នន័យអ្នកជំងឺ
+                </div>
+              ) : filteredPatients.map(p=>{
+                const tc=p.services.reduce((a,c)=>a+c.price,0);
+                const tp=p.payments.reduce((a,c)=>a+c.amount,0);
+                const bal=tc-tp;
+                const isSel=selectedPatientId===p.id;
                 return (
-                    <button type="button" key={t} onClick={() => onToggleTooth(t)}
-                        className={`w-7 h-7 rounded-lg text-xs font-bold transition flex items-center justify-center border cursor-pointer ${
-                            isSel ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50'}`}>
-                        {t}
-                    </button>
-                );
-            };
-            return (
-                <div className="space-y-1">
-                    {label && <label className="block text-xs font-semibold text-slate-700 mb-1">{label}</label>}
-                    <div className="bg-slate-100/90 p-3 rounded-2xl border border-slate-200 overflow-x-auto max-w-full">
-                        <div className="min-w-max flex flex-col items-center gap-2">
-                            <div className="flex items-center gap-1 flex-nowrap">
-                                <span className="text-[11px] font-bold text-teal-700 mr-1 w-10 text-right">លើ:</span>
-                                <div className="flex items-center gap-1">{UPPER_TEETH_RIGHT.map(renderTooth)}</div>
-                                <div className="w-px h-6 bg-slate-300 mx-1.5"></div>
-                                <div className="flex items-center gap-1">{UPPER_TEETH_LEFT.map(renderTooth)}</div>
-                            </div>
-                            <div className="w-full border-t border-slate-200 my-0.5"></div>
-                            <div className="flex items-center gap-1 flex-nowrap">
-                                <span className="text-[11px] font-bold text-teal-700 mr-1 w-10 text-right">ក្រោម:</span>
-                                <div className="flex items-center gap-1">{LOWER_TEETH_RIGHT.map(renderTooth)}</div>
-                                <div className="w-px h-6 bg-slate-300 mx-1.5"></div>
-                                <div className="flex items-center gap-1">{LOWER_TEETH_LEFT.map(renderTooth)}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <p className="text-[11px] text-teal-700 font-semibold pt-1">
-                        ធ្មេញជ្រើសរើស: {selectedTeeth.length > 0 ? selectedTeeth.slice().sort((a,b)=>a-b).join(', ') : 'គ្មាន (ជ្រើសរើសទូទៅ)'}
-                    </p>
-                </div>
-            );
-        }
-
-        /* ===================== REPORTS VIEW (ផ្គុំពីកូដទី២) ===================== */
-        function ReportsView({ patients, clinicInfo, onPrintReport }) {
-            const today = new Date();
-            const currentYear = today.getFullYear();
-            const currentMonthIndex = today.getMonth();
-            const currentDayFormatted = today.toISOString().split('T')[0];
-            const defaultMonthStr = `${KHMER_MONTHS[currentMonthIndex]} ${currentYear}`;
-
-            const [reportType, setReportType] = useState('monthly'); // 'daily' | 'monthly'
-            const [selectedDate, setSelectedDate] = useState(currentDayFormatted);
-            const [selectedMonth, setSelectedMonth] = useState(defaultMonthStr);
-            const [isPickerOpen, setIsPickerOpen] = useState(false);
-
-            // Generate dynamic options (auto-updating for future years)
-            const generateDynamicOptions = () => {
-                if (reportType === 'monthly') {
-                    const options = [];
-                    for (let y = currentYear - 2; y <= currentYear + 10; y++) {
-                        for (let m = 0; m < 12; m++) options.push(`${KHMER_MONTHS[m]} ${y}`);
-                    }
-                    return options;
-                } else {
-                    const options = [];
-                    for (let i = 0; i < 60; i++) {
-                        const d = new Date();
-                        d.setDate(today.getDate() - i);
-                        options.push(d.toISOString().split('T')[0]);
-                    }
-                    return options;
-                }
-            };
-            const currentOptions = generateDynamicOptions();
-
-            // Filter key: ISO date (daily) or ISO month (monthly)
-            const filterKey = reportType === 'daily' ? selectedDate : khmerMonthToIso(selectedMonth);
-
-            // Filter real data
-            const inRange = (dateStr) => dateStr && dateStr.startsWith(filterKey);
-
-            const periodPayments = patients.flatMap(p =>
-                (p.payments || []).map(pm => ({ ...pm, patientName: p.name, patientPhone: p.phone, patientId: p.id }))
-            ).filter(pm => inRange(pm.date));
-
-            const newPatientsList = patients.filter(p => inRange(p.createdAt));
-
-            const periodAppointments = patients.flatMap(p =>
-                (p.appointments || []).map(ap => ({ ...ap, patientName: p.name, patientPhone: p.phone }))
-            ).filter(ap => inRange(ap.date));
-
-            const totalRevenue = periodPayments.reduce((s, pm) => s + pm.amount, 0);
-            const completedAppointments = periodAppointments.filter(ap => ap.status === 'រួចរាល់');
-            const newServicesBilled = newPatientsList.reduce((s, p) =>
-                s + (p.services || []).reduce((ss, sv) => ss + sv.price, 0), 0);
-            const avgRevenue = periodPayments.length > 0 ? totalRevenue / periodPayments.length : 0;
-
-            const title = reportType === 'daily' ? 'របាយការណ៍បូកសរុបប្រចាំថ្ងៃ' : 'របាយការណ៍បូកសរុបប្រចាំខែ';
-            const subtitle = reportType === 'daily'
-                ? 'តាមការចំណូល ចំនួនអ្នកជំងឺ និងការណាត់ជួបប្រចាំថ្ងៃ'
-                : 'តាមការចំណូល ចំនួនអ្នកជំងឺ និងការណាត់ជួបប្រចាំខែ';
-            const periodLabel = reportType === 'daily' ? `កាលបរិច្ឆេទ: ${selectedDate}` : `ខែ: ${selectedMonth}`;
-
-            const handlePrintPOS = () => {
-                const printWindow = window.open('', '_blank', 'width=350,height=600');
-                if (!printWindow) return;
-                printWindow.document.write(`
-                    <html><head><title>POS - ${title}</title>
-                    <style>
-                        body { font-family: 'Courier New', monospace; width: 300px; margin: 0 auto; padding: 10px; color: #000; background: #fff; }
-                        .center { text-align: center; } .bold { font-weight: bold; }
-                        .line { border-bottom: 1px dashed #000; margin: 8px 0; }
-                        .flex { display: flex; justify-content: space-between; }
-                        .small { font-size: 11px; } .title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
-                    </style></head><body>
-                        <div class="center title">${clinicInfo.name}</div>
-                        <div class="center small">${clinicInfo.subtitle}</div>
-                        <div class="line"></div>
-                        <div class="center bold">${title}</div>
-                        <div class="center small">${periodLabel}</div>
-                        <div class="line"></div>
-                        <div class="flex"><span>ប្រាក់ចំណូលសរុប:</span><span class="bold">${formatMoney(totalRevenue)}</span></div>
-                        <div class="small" style="margin-bottom:6px;">ប្រតិបត្តិការបង់ប្រាក់: ${periodPayments.length} លើក</div>
-                        <div class="flex"><span>អ្នកជំងឺចុះឈ្មោះថ្មី:</span><span class="bold">${newPatientsList.length} នាក់</span></div>
-                        <div class="small" style="margin-bottom:6px;">ថ្លៃសេវាបម្រើការ: ${formatMoney(newServicesBilled)}</div>
-                        <div class="flex"><span>ការណាត់ជួប:</span><span class="bold">${periodAppointments.length} ដង</span></div>
-                        <div class="small" style="margin-bottom:6px;">ព្យាបាលរួចរាល់: ${completedAppointments.length} ដង</div>
-                        <div class="flex"><span>មធ្យមភាគ/ប្រតិបត្តិការ:</span><span class="bold">${formatMoney(avgRevenue)}</span></div>
-                        <div class="line"></div>
-                        <div class="center small">${clinicInfo.footerNote}</div>
-                        <div class="center small">បោះពុម្ពនៅ: ${new Date().toLocaleString()}</div>
-                    </body></html>
-                `);
-                printWindow.document.close();
-                printWindow.focus();
-                setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
-            };
-
-            const handleSelectOption = (value) => {
-                if (reportType === 'daily') setSelectedDate(value);
-                else setSelectedMonth(value);
-                setIsPickerOpen(false);
-            };
-
-            const selectedValue = reportType === 'daily' ? selectedDate : selectedMonth;
-
-            return (
-                <div className="space-y-4">
-                    {/* Toggle Switcher */}
-                    <div className="bg-slate-200 p-1 rounded-xl flex shadow-inner no-print">
-                        <button onClick={() => { setReportType('daily'); setIsPickerOpen(false); }}
-                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                                reportType === 'daily' ? 'bg-teal-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>
-                            <Icons.Calendar /> របាយការណ៍ប្រចាំថ្ងៃ
-                        </button>
-                        <button onClick={() => { setReportType('monthly'); setIsPickerOpen(false); }}
-                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                                reportType === 'monthly' ? 'bg-teal-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>
-                            <Icons.BarChart3 /> របាយការណ៍ប្រចាំខែ
-                        </button>
-                    </div>
-
-                    {/* Header Card + Picker */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+                  <div key={p.id} className={`bg-white rounded-2xl border transition-all overflow-hidden ${isSel?'border-teal-500 shadow-md ring-2 ring-teal-500/20':'border-slate-200 hover:border-teal-300 shadow-sm'}`}>
+                    <div onClick={()=>setSelectedPatientId(isSel?null:p.id)}
+                      className={`p-4 transition cursor-pointer flex flex-col gap-2 ${isSel?'bg-teal-50/90 border-b border-teal-100':'hover:bg-slate-50/80'}`}>
+                      <div className="flex items-start justify-between">
                         <div>
-                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <span className="text-teal-600"><Icons.BarChart3 /></span> {title}
-                            </h2>
-                            <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-base">{p.name}</span>
+                            <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full font-mono">{p.id}</span>
+                            {isSel && <span className="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded-full">កំពុងមើល</span>}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            ទូរស័ព្ទ: <span className="font-semibold text-slate-700">{p.phone}</span> • ភេទ: {p.gender} ({p.age} ឆ្នាំ)
+                          </p>
                         </div>
-                        <div className="flex items-center justify-between pt-2 relative gap-2 flex-wrap">
-                            <div className="relative inline-block">
-                                <button onClick={() => setIsPickerOpen(!isPickerOpen)}
-                                    className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-sm cursor-pointer">
-                                    <span>{reportType === 'daily' ? `កាលបរិច្ឆេទ: ${selectedDate}` : `ខែ: ${selectedMonth}`}</span>
-                                    <span className={`text-slate-400 transition-transform ${isPickerOpen ? 'rotate-180' : ''}`}>
-                                        <Icons.ChevronDown />
-                                    </span>
-                                </button>
-                                {isPickerOpen && (
-                                    <div className="absolute left-0 mt-2 w-52 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1">
-                                        <div className="text-[10px] text-slate-400 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-white">
-                                            {reportType === 'daily' ? 'ជ្រើសរើសថ្ងៃ' : 'ជ្រើសរើសខែ និងឆ្នាំ'}
-                                        </div>
-                                        {currentOptions.map((item) => (
-                                            <button key={item} onClick={() => handleSelectOption(item)}
-                                                className={`w-full text-left px-3 py-2 text-xs rounded-lg transition cursor-pointer ${
-                                                    selectedValue === item
-                                                        ? 'bg-teal-700 text-white font-bold'
-                                                        : 'text-slate-700 hover:bg-slate-100'}`}>
-                                                {item}
-                                            </button>
-                                        ))}
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${bal<=0?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>
+                          {bal<=0?'បង់រួច':`ជំពាក់: ${formatMoney(bal)}`}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-200/60 pt-2 mt-1">
+                        <span>សេវា: {p.services.length} ប្រភេទ</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-700">សរុប: {formatMoney(tc)}</span>
+                          <span className="text-teal-700 font-bold text-xs">{isSel?'▲ បិទ':'▼ លម្អិត'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isSel && (
+                      <div className="p-4 sm:p-5 bg-white space-y-4 animate-fadeIn">
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                          <div className="text-xs font-semibold text-slate-700">
+                            ចុះឈ្មោះ: <span className="font-bold text-slate-900">{formatDate(p.createdAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button onClick={e=>{e.stopPropagation();openEditPatientModal(p);}} className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer shadow-xs" title="កែ"><Icons.Edit/></button>
+                            <button onClick={e=>{e.stopPropagation();handleDeletePatient(p.id);}} className="p-2 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 cursor-pointer shadow-xs" title="លុប"><Icons.Trash/></button>
+                            <button onClick={e=>{e.stopPropagation();setPaymentModal({open:true,patient:p,amount:"",note:""});}} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1"><Icons.Dollar/> បង់ប្រាក់</button>
+                            <button onClick={e=>{e.stopPropagation();setPosPatientModal(p);}} className="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1"><Icons.Printer/> វិក្កយបត្រ POS</button>
+                          </div>
+                        </div>
+
+                        <div className="flex border-b border-slate-200 text-xs font-bold gap-1">
+                          <button onClick={()=>setActiveTab("overview")} className={`py-2.5 px-3.5 border-b-2 transition cursor-pointer ${activeTab==='overview'?'border-teal-600 text-teal-700':'border-transparent text-slate-500 hover:text-slate-800'}`}>ព័ត៌មានទូទៅ</button>
+                          <button onClick={()=>setActiveTab("appointments")} className={`py-2.5 px-3.5 border-b-2 transition cursor-pointer ${activeTab==='appointments'?'border-teal-600 text-teal-700':'border-transparent text-slate-500 hover:text-slate-800'}`}>ណាត់ជួប ({p.appointments.length})</button>
+                          <button onClick={()=>setActiveTab("payments")} className={`py-2.5 px-3.5 border-b-2 transition cursor-pointer ${activeTab==='payments'?'border-teal-600 text-teal-700':'border-transparent text-slate-500 hover:text-slate-800'}`}>ទូទាត់ ({p.payments.length})</button>
+                        </div>
+
+                        {activeTab==="overview" && (
+                          <div className="space-y-4 pt-1">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                                <span className="text-[11px] font-medium text-slate-500">ថ្លៃសេវាសរុប</span>
+                                <p className="font-bold text-slate-800 text-sm mt-0.5">{formatMoney(tc)}</p>
+                              </div>
+                              <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 text-center">
+                                <span className="text-[11px] font-medium text-emerald-700">បានបង់</span>
+                                <p className="font-bold text-emerald-800 text-sm mt-0.5">{formatMoney(tp)}</p>
+                              </div>
+                              <div className="bg-amber-50/80 p-3 rounded-xl border border-amber-200 text-center">
+                                <span className="text-[11px] font-medium text-amber-700">នៅខ្វះ</span>
+                                <p className="font-bold text-amber-800 text-sm mt-0.5">{formatMoney(bal)}</p>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-slate-800 text-xs">សេវាកម្មព្យាបាល</h3>
+                                <button onClick={()=>openEditPatientModal(p)} className="text-xs text-teal-700 font-bold hover:underline cursor-pointer">+ កែប្រែ</button>
+                              </div>
+                              <div className="space-y-2">
+                                {p.services.map((s,i)=>(
+                                  <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                    <div>
+                                      <p className="font-bold text-slate-800 text-xs">{s.name}</p>
+                                      <p className="text-[11px] text-teal-700 font-semibold mt-0.5">
+                                        ធ្មេញ: {s.teeth&&s.teeth.length>0?s.teeth.slice().sort((a,b)=>a-b).join(', '):'ទូទៅ'}
+                                      </p>
                                     </div>
-                                )}
+                                    <span className="font-bold text-slate-900 text-xs">{formatMoney(s.price)}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <button onClick={handlePrintPOS}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-sm cursor-pointer">
-                                <Icons.Printer /> បោះពុម្ព POS
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-emerald-600 text-white rounded-2xl p-5 shadow-sm space-y-2 relative overflow-hidden">
-                            <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-24 h-24 bg-emerald-500/30 rounded-full blur-xl pointer-events-none"></div>
-                            <p className="text-xs font-medium text-emerald-100">ប្រាក់ចំណូលទទួលបានសរុប</p>
-                            <div className="text-3xl font-extrabold tracking-tight">{formatMoney(totalRevenue)}</div>
-                            <div className="border-t border-emerald-500/50 pt-2 text-xs text-emerald-100">
-                                ប្រតិបត្តិការបង់ប្រាក់: {periodPayments.length} លើក
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-1">
-                            <p className="text-xs text-slate-500 font-medium">អ្នកជំងឺចុះឈ្មោះថ្មី</p>
-                            <div className="text-2xl font-bold text-slate-800">{newPatientsList.length} នាក់</div>
-                            <p className="text-xs text-slate-400 pt-1">ថ្លៃសេវាបម្រើការ: {formatMoney(newServicesBilled)}</p>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-1">
-                            <p className="text-xs text-slate-500 font-medium">
-                                ការណាត់ជួបក្នុង{reportType === 'daily' ? 'ថ្ងៃ' : 'ខែ'}
-                            </p>
-                            <div className="text-2xl font-bold text-slate-800">{periodAppointments.length} ដង</div>
-                            <p className="text-xs text-slate-400 pt-1">ព្យាបាលរួចរាល់: {completedAppointments.length} ដង</p>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-1">
-                            <p className="text-xs text-slate-500 font-medium">មធ្យមភាគចំណូល/ប្រតិបត្តិការ</p>
-                            <div className="text-2xl font-bold text-slate-800">{formatMoney(avgRevenue)}</div>
-                        </div>
-                    </div>
-
-                    {/* Payment History Table */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-3 flex-wrap gap-2">
-                            <h3 className="font-bold text-slate-800 text-sm">
-                                ប្រវត្តិប្រមូលប្រាក់ ({periodPayments.length} ប្រតិបត្តិការ)
-                            </h3>
-                            <span className="text-xs font-bold text-emerald-700">សរុប: {formatMoney(totalRevenue)}</span>
-                        </div>
-                        {periodPayments.length === 0 ? (
-                            <div className="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                មិនទាន់មានទិន្នន័យទូរទាត់ប្រាក់សម្រាប់ {reportType === 'daily' ? selectedDate : selectedMonth} នៅឡើយទេ
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-xs">
-                                    <thead>
-                                        <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                                            <th className="p-3 rounded-l-xl">កាលបរិច្ឆេទ</th>
-                                            <th className="p-3">ឈ្មោះអ្នកជំងឺ</th>
-                                            <th className="p-3">ទូរស័ព្ទ</th>
-                                            <th className="p-3">កត់ចំណាំ</th>
-                                            <th className="p-3 text-right rounded-r-xl">ទឹកប្រាក់</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {periodPayments.map((pm, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50/80">
-                                                <td className="p-3 font-semibold text-slate-700">{formatDate(pm.date)}</td>
-                                                <td className="p-3 font-bold text-slate-900">{pm.patientName}</td>
-                                                <td className="p-3 text-slate-500">{pm.patientPhone}</td>
-                                                <td className="p-3 text-slate-600">{pm.note || 'បង់ប្រាក់'}</td>
-                                                <td className="p-3 text-right font-bold text-emerald-700">{formatMoney(pm.amount)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            {p.notes && (
+                              <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-xs">
+                                <span className="font-bold text-amber-900 block mb-0.5">កត់ចំណាំ:</span>
+                                <p className="text-amber-800 leading-relaxed">{p.notes}</p>
+                              </div>
+                            )}
+                          </div>
                         )}
-                    </div>
-                </div>
-            );
-        }
 
-        /* ===================== MAIN APP ===================== */
-        function App() {
-            const [clinicInfo, setClinicInfo] = useState(() => safeGetStorage('dental_clinic_info', INITIAL_CLINIC_INFO));
-            const [presetServices, setPresetServices] = useState(() => safeGetStorage('dental_preset_services', INITIAL_PRESET_SERVICES));
-            const [patients, setPatients] = useState(() => safeGetStorage('dental_patients_data', INITIAL_PATIENTS));
-
-            const [currentView, setCurrentView] = useState("patients");
-            const [searchTerm, setSearchTerm] = useState("");
-            const [selectedPatientId, setSelectedPatientId] = useState(null);
-            const [activeTab, setActiveTab] = useState("overview");
-            const [selectedFilterDate, setSelectedFilterDate] = useState("");
-
-            const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-            const [editingPatient, setEditingPatient] = useState(null);
-            const [patientForm, setPatientForm] = useState({
-                id: "", name: "", phone: "", gender: "ស្រី", age: "",
-                services: [], deposit: "", firstAppDate: "", firstAppTime: "09:00", notes: {
- ""
-            });
-
-            const [paymentModal, setPaymentModal] = useState({ open               : false, patient: null, amount set: "", note: "" });
-Editing            const [newAppModal, setPatientNewAppModal] = useState({ open: false, patientId:( "", date: getTodayIso(), timepat: "09:00", note: "" });
-            const [confirmDeleteModal, setConfirmDeleteModal] = useState({ open: false, type: "", targetId: "", title: "", text: "" });
-            const [toastMessage, setToastMessage] = useState("");
-            const [posPatientModal, setPosPatientModal] = useState(null);
-
-            const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-            const [serviceForm, setServiceForm] = useState({ name: "", price: "" });
-            const [editingService, setEditingService] = useState(null);
-            const [isClinicModalOpen, setIsClinicModalOpen] = useState(false);
-
-            useEffect(() => { safeSetStorage('dental_clinic_info', clinicInfo); }, [clinicInfo]);
-            useEffect(() => { safeSetStorage('dental_preset_services', presetServices); }, [presetServices]);
-            useEffect(() => { safeSetStorage('dental_patients_data', patients); }, [patients]);
-
-            const showToast = (msg) => { setToastMessage(msg); setTimeout(() => setToastMessage(""), 3000); };
-
-            const openNewPatientModal = () => {
-                setEditingPatient(null);
-                setPatientForm({
-                    id: "", name: "", phone: "", gender: "ស្រី", age: "",
-                    services: [{ id: `s-${Date.now()}`, name: "", teeth: [], price: "" }],
-                    deposit: "", firstAppDate: getTodayIso(), firstAppTime: "09:00", notes: ""
-                });
-                setIsRegisterOpen(true);
-            };
-            const openEditPatientModal = (pat) =>);
-                setPatientForm({
-                    id: pat.id, name: pat.name, phone: pat.phone, gender: pat.gender, age: pat.age || "",
-                    services: pat.services && pat.services.length > 0 ? pat.services : [{ id: `s-${Date.now()}`, name: "", teeth: [], price: "" }],
-                    deposit: "", firstAppDate: "", firstAppTime: "09:00", notes: pat.notes || ""
-                });
-                setIsRegisterOpen(true);
-            };
-
-            const handleSavePatientSubmit = (e) => {
-                e.preventDefault();
-                if (!patientForm.name || !patientForm.phone) { showToast("សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!"); return; }
-                const initialDeposit = parseFloat(patientForm.deposit) || 0;
-                const formattedServices = patientForm.services.filter(s => s.name.trim() !== "").map(s => ({
-                    id: s.id || `s-${Date.now()}-${Math.random()}`,
-                    name: s.name, teeth: s.teeth || [], price: parseFloat(s.price) || 0
-                }));
-
-                if (editingPatient) {
-                    setPatients(patients.map(p => p.id === editingPatient.id ? {
-                        ...p, name: patientForm.name, phone: patientForm.phone, gender: patientForm.gender,
-                        age: parseInt(patientForm.age) || 0, services: formattedServices, notes: patientForm.notes
-                    } : p));
-                    showToast("បានកែប្រែព័ត៌មានអ្នកជំងឺ!");
-                } else {
-                    const newId = `P-${Math.floor(1000 + Math.random() * 9000)}`;
-                    const newPatientObj = {
-                        id: newId, name: patientForm.name, phone: patientForm.phone, gender: patientForm.gender,
-                        age: parseInt(patientForm.age) || 0, services: formattedServices,
-                        createdAt: getTodayIso(), notes: patientForm.notes,
-                        appointments: patientForm.firstAppDate ? [{
-                            id: `a-${Date.now()}`, date: patientForm.firstAppDate, time: patientForm.firstAppTime || "09:00",
-                            note: "ការណាត់ជួបលើកដំបូង", status: "កំពុងរង់ចាំ"
-                        }] : [],
-                        payments: initialDeposit > 0 ? [{
-                            id: `p-${Date.now()}`, amount: initialDeposit, date: getTodayIso(), note: "ប្រាក់កក់ដំបូង"
-                        }] : []
-                    };
-                    setPatients([newPatientObj, ...patients]);
-                    setSelectedPatientId(newId);
-                    showToast("បានចុះឈ្មោះអ្នកជំងឺថ្មី!");
-                }
-                setIsRegisterOpen(false);
-            };
-
-            const handleDeletePatient = (patientId) => {
-                setConfirmDeleteModal({ open: true, type: "PATIENT", targetId: patientId,
-                    title: "លុបទិន្នន័យអ្នកជំងឺ",
-                    text: "តើអ្នកពិតជាចង់លុបទិន្នន័យអ្នកជំងឺនេះមែនទេ?" });
-            };
-
-            const confirmExecuteDelete = () => {
-                const { type, targetId } = confirmDeleteModal;
-                if (type === "PATIENT") {
-                    const remaining = patients.filter(p => p.id !== targetId);
-                    setPatients(remaining);
-                    if (selectedPatientId === targetId) setSelectedPatientId(remaining.length > 0 ? remaining[0].id : null);
-                    showToast("បានលុបអ្នកជំងឺរួចរាល់!");
-                } else if (type === "SERVICE") {
-                    setPresetServices(presetServices.filter(s => s.id !== targetId));
-                    showToast("បានលុបសេវាកម្មរួចរាល់!");
-                } else if (type === "PAYMENT") {
-                    setPatients(patients.map(p => p.id === selectedPatientId
-                        ? { ...p, payments: p.payments.filter(pm => pm.id !== targetId)7 } : p));
-                    showToast("បានលុបប្រវតxl្តិទូទាត់!");
-                } else if mx (type === "-autoAPPOINTMENT") {
-                    setPatients(patients px.map(p => p.id === selectedPatientId
-                        ?- { ...p, appointments: p.appointments.filter(ap => ap.id !== targetId) } : p));
-                    showToast("បានលុបការណាត់ជួប!");
-                }
-                setConfirmDeleteModal({ open: false, type: "", targetId: "", title: "", text: "" });
-            };
-
-            const filteredPatients = useMemo(() => patients.filter(p =>
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.phone.includes(searchTerm) ||
-                p.id.toLowerCase().includes(searchTerm.toLowerCase())
-            ), [patients, searchTerm]);
-
-            const handleAddPayment = () => {
-                if (!paymentModal.patient || !paymentModal.amount) return;
-                const payAmt = parseFloat(paymentModal.amount);
-                if (payAmt <= 0) return;
-                setPatients(patients.map(p => p.id === paymentModal.patient.id ? {
-                    ...p, payments: [...p.payments, {
-                        id: `p-${Date.now()}`, amount: payAmt, date: getTodayIso(),
-                        note: paymentModal.note || "ការបង់ប្រាក់បន្ថែម"
-                    }]
-                } : p));
-                setPaymentModal({ open: false, patient: null, amount: "", note: "" });
-                showToast("បានកត់ត្រាការទូទាត់!");
-            };
-
-            const handleAddAppointment = () => {
-                if (!newAppModal.patientId) return;
-                setPatients(patients.map(p => p.id === newAppModal.patientId ? {
-                    ...p, appointments: [...p.appointments, {
-                        id: `a-${Date.now()}`, date: newAppModal.date, time: newAppModal.time,
-                        note: newAppModal.note || "ការណាត់ជួបព្យាបាល", status: "កំពុងរង់ចាំ"
-                    }]
-                } : p));
-                setNewAppModal({ open: false, patientId: "", date: getTodayIso(), time: "09:00", note: "" });
-                showToast("បានបន្ថែមការណាត់ជួប!");
-            };
-
-            const handleToggleAppointmentStatus = (patientId, appointmentId, nextStatus) => {
-                setPatients(patients.map(p => p.id === patientId ? {
-                    ...p, appointments: p.appointments.map(a => a.id === appointmentId ? { ...a, status: nextStatus } : a)
-                } : p));
-                showToast(`បានប្តូរស្ថានភាពទៅជា៖ ${nextStatus}`);
-            };
-
-            const handleSaveServiceCatalog = (e) => {
-                e.preventDefault();
-                if (!serviceForm.name || !serviceForm.price) return;
-                if (editingService) {
-                    setPresetServices(presetServices.map(s => s.id === editingService.id
-                        ? { ...s, name: serviceForm.name, price: parseFloat(serviceForm.price) || 0 } : s));
-                    showToast("បានបច្ចុប្បន្នភាពសេវាកម្ម!");
-                } else {
-                    setPresetServices([...presetServices, {
-                        id: `cat-${Date.now()}`, name: serviceForm.name, price: parseFloat(serviceForm.price) || 0
-                    }]);
-                    showToast("បានបន្ថែមសេវាកម្មថ្មី!");
-                }
-                setIsServiceModalOpen(false);
-                setServiceForm({ name: "", price: "" });
-                setEditingService(null);
-            };
-
-            return (
-                <div className="min-h-screen flex flex-col">
-                    {/* HEADER */}
-                    <header className="bg-teal-700 text-white shadow-md sticky top-0 z-30 no-print">
-                        <div className="max-w-4 py-3 flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-teal-200 border border-white/20">
-                                    <Icons.Tooth />
-                                </div>
+                        {activeTab==="appointments" && (
+                          <div className="space-y-3 pt-1">
+                            <div className="flex justify-between items-center">
+                              <h3 className="font-bold text-slate-800 text-xs">បញ្ជីណាត់ជួប</h3>
+                              <button onClick={()=>setNewAppModal({open:true,patientId:p.id,date:getTodayIso(),time:"09:00",note:""})} className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1"><Icons.Plus/> បន្ថែម</button>
+                            </div>
+                            {p.appointments.length===0 ? (
+                              <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">មិនទាន់មានការណាត់ជួប</div>
+                            ) : p.appointments.map(a=>(
+                              <div key={a.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                                 <div>
-                                    <h1 className="font-bold text-lg leading-snug">{clinicInfo.name}</h1>
-                                    <p className="text-xs text-teal-200">{clinicInfo.subtitle}</p>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800 text-xs">{formatDate(a.date)} ម៉ោង {a.time}</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.status==='រួចរាល់'?'bg-emerald-100 text-emerald-800':a.status==='លុបចោល'?'bg-rose-100 text-rose-800':'bg-amber-100 text-amber-800'}`}>{a.status}</span>
+                                  </div>
+                                  <p className="text-xs text-slate-500 mt-1">{a.note}</p>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <button onClick={() => setCurrentView("patients")}
-                                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${currentView === 'patients' ? 'bg-white text-teal-800 shadow-sm' : 'hover:bg-teal-600 text-teal-100'}`}>
-                                    អ្នកជំងឺទាំងអស់
-                                </button>
-                                <button onClick={() => setCurrentView("appointments")}
-                                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${currentView === 'appointments' ? 'bg-white text-teal-800 shadow-sm' : 'hover:bg-teal-600 text-teal-100'}`}>
-                                    <Icons.Calendar /> តារាងណាត់ជួប
-                                </button>
-                                <button onClick={() => setCurrentView("services")}
-                                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${currentView === 'services' ? 'bg-white text-teal-800 shadow-sm' : 'hover:bg-teal-600 text-teal-100'}`}>
-                                    សេវាកម្ម និងតម្លៃ
-                                </button>
-                                <button onClick={() => setCurrentView("reports")}
-                                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${currentView === 'reports' ? 'bg-white text-teal-800 shadow-sm' : 'hover:bg-teal-600 text-teal-100'}`}>
-                                    <Icons.Chart /> របាយការណ៍
-                                </button>
-                                <button onClick={() => setIsClinicModalOpen(true)}
-                                    className="p-2.5 rounded-xl hover:bg-teal-600 text-teal-100 transition cursor-pointer" title="ការកំណត់">
-                                    <Icons.Settings />
-                                </button>
-                            </div>
-                        </div>
-                    </header>
-
-                    {toastMessage && (
-                        <div className="fixed bottom-5 right-5 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-medium border border-slate-700 flex items-center gap-2 no-print">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            {toastMessage}
-                        </div>
-                    )}
-
-                    <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 no-print">
-                        {currentView === "patients" && (
-                            <div className="space-y-4">
-                                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <h2 className="font-bold text-slate-800 text-base">បញ្ជីអ្នកជំងឺ ({filteredPatients.length})</h2>
-                                        <button onClick={openNewPatientModal}
-                                            className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-                                            <Icons.Plus /> អ្នកជំងឺថ្មី
-                                        </button>
-                                    </div>
-                                    <div className="relative w-full sm:w-80">
-                                        <input type="text" placeholder="ស្វែងរកតាម ឈ្មោះ លេខទូរស័ព្ទ ឬកូដ..."
-                                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-teal-500" />
-                                        <div className="absolute left-3 top-2.5 text-slate-400"><Icons.Search /></div>
-                                    </div>
+                                <div className="flex items-center gap-1">
+                                  {a.status==='កំពុងរង់ចាំ' && (
+                                    <button onClick={()=>handleToggleAppointmentStatus(p.id,a.id,"រួចរាល់")} className="px-2.5 py-1 bg-emerald-600 text-white text-[11px] font-bold rounded-lg hover:bg-emerald-700 cursor-pointer">រួចរាល់</button>
+                                  )}
+                                  <button onClick={()=>setConfirmDeleteModal({open:true,type:"APPOINTMENT",targetId:a.id,title:"លុបការណាត់ជួប",text:"តើអ្នកចង់លុបការណាត់ជួបនេះមែនទេ?"})} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-200 cursor-pointer"><Icons.Trash/></button>
                                 </div>
-
-                                <div className="space-y-3">
-                                    {filteredPatients.length === 0 ? (
-                                        <div className="bg-white p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-200 text-xs">
-                                            មិនមានទិន្នន័យអ្នកជំងឺឡើយ
-                                        </div>
-                                    ) : filteredPatients.map(p => {
-                                        const totalCharge = p.services.reduce((a, c) => a + c.price, 0);
-                                        const totalPaid = p.payments.reduce((a, c) => a + c.amount, 0);
-                                        const balance = totalCharge - totalPaid;
-                                        const isSelected = selectedPatientId === p.id;
-                                        return (
-                                            <div key={p.id} className={`bg-white rounded-2xl border transition-all overflow-hidden ${isSelected ? 'border-teal-500 shadow-md ring-2 ring-teal-500/20' : 'border-slate-200 hover:border-teal-300 shadow-sm'}`}>
-                                                <div onClick={() => setSelectedPatientId(isSelected ? null : p.id)}
-                                                    className={`p-4 transition cursor-pointer flex flex-col gap-2 ${isSelected ? 'bg-teal-50/90 border-b border-teal-100' : 'hover:bg-slate-50/80'}`}>
-                                                    <div className="flex items-start justify-between">
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-bold text-slate-900 text-base">{p.name}</span>
-                                                                <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full font-mono">{p.id}</span>
-                                                                {isSelected && <span className="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded-full">កំពុងមើល</span>}
-                                                            </div>
-                                                            <p className="text-xs text-slate-500 mt-1">
-                                                                ទូរស័ព្ទ: <span className="font-semibold text-slate-700">{p.phone}</span> • ភេទ: {p.gender} ({p.age} ឆ្នាំ)
-                                                            </p>
-                                                        </div>
-                                                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${balance <= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                                            {balance <= 0 ? 'បង់រួច' : `ជំពាក់: ${formatMoney(balance)}`}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-200/60 pt-2 mt-1">
-                                                        <span>សេវា: {p.services.length} ប្រភេទ</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-medium text-slate-700">សរុប: {formatMoney(totalCharge)}</span>
-                                                            <span className="text-teal-700 font-bold text-xs">{isSelected ? '▲ បិទ' : '▼ មើលព័ត៌មានលម្អិត'}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {isSelected && (
-                                                    <div className="p-4 sm:p-5 bg-white space-y-4 animate-fadeIn">
-                                                        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200/70">
-                                                            <div className="text-xs font-semibold text-slate-700">
-                                                                កាលបរិច្ឆេទចុះឈ្មោះ: <span className="font-bold text-slate-900">{formatDate(p.createdAt)}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                                <button onClick={(e) => { e.stopPropagation(); openEditPatientModal(p); }}
-                                                                    className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition cursor-pointer shadow-xs" title="កែប្រែ">
-                                                                    <Icons.Edit />
-                                                                </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDeletePatient(p.id); }}
-                                                                    className="p-2 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 transition cursor-pointer shadow-xs" title="លុប">
-                                                                    <Icons.Trash />
-                                                                </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); setPaymentModal({ open: true, patient: p, amount: "", note: "" }); }}
-                                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer">
-                                                                    <Icons.Dollar /> បង់ប្រាក់
-                                                                </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); setPosPatientModal(p); }}
-                                                                    className="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer">
-                                                                    <Icons.Printer /> វិក្កយបត្រ POS
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex border-b border-slate-200 text-xs font-bold gap-1">
-                                                            <button onClick={() => setActiveTab("overview")}
-                                                                className={`py-2.5 px-3.5 border-b-2 transition cursor-pointer ${activeTab === 'overview' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                                                                ព័ត៌មានទូទៅ
-                                                            </button>
-                                                            <button onClick={() => setActiveTab("appointments")}
-                                                                className={`py-2.5 px-3.5 border-b-2 transition cursor-pointer ${activeTab === 'appointments' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                                                                ណាត់ជួប ({p.appointments.length})
-                                                            </button>
-                                                            <button onClick={() => setActiveTab("payments")}
-                                                                className={`py-2.5 px-3.5 border-b-2 transition cursor-pointer ${activeTab === 'payments' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                                                                ទូទាត់ ({p.payments.length})
-                                                            </button>
-                                                        </div>
-
-                                                        {activeTab === "overview" && (
-                                                            <div className="space-y-4 pt-1">
-                                                                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-                                                                        <span className="text-[11px] font-medium text-slate-500">ថ្លៃសេវាសរុប</span>
-                                                                        <p className="font-bold text-slate-800 text-sm mt-0.5">{formatMoney(totalCharge)}</p>
-                                                                    </div>
-                                                                    <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 text-center">
-                                                                        <span className="text-[11px] font-medium text-emerald-700">បានបង់</span>
-                                                                        <p className="font-bold text-emerald-800 text-sm mt-0.5">{formatMoney(totalPaid)}</p>
-                                                                    </div>
-                                                                    <div className="bg-amber-50/80 p-3 rounded-xl border border-amber-200 text-center">
-                                                                        <span className="text-[11px] font-medium text-amber-700">នៅខ្វះ</span>
-                                                                        <p className="font-bold text-amber-800 text-sm mt-0.5">{formatMoney(balance)}</p>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div>
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <h3 className="font-bold text-slate-800 text-xs">សេវាកម្មព្យាបាល</h3>
-                                                                        <button onClick={() => openEditPatientModal(p)} className="text-xs text-teal-700 font-bold hover:underline cursor-pointer">+ កែប្រែ</button>
-                                                                    </div>
-                                                                    <div className="space-y-2">
-                                                                        {p.services.map((s, idx) => (
-                                                                            <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                                                                                <div>
-                                                                                    <p className="font-bold text-slate-800 text-xs">{s.name}</p>
-                                                                                    <p className="text-[11px] text-teal-700 font-semibold mt-0.5">
-                                                                                        លេខធ្មេញ: {s.teeth && s.teeth.length > 0 ? s.teeth.slice().sort((a,b)=>a-b).join(', ') : 'ទូទៅ'}
-                                                                                    </p>
-                                                                                </div>
-                                                                                <span className="font-bold text-slate-900 text-xs">{formatMoney(s.price)}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-
-                                                                {p.notes && (
-                                                                    <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-xs">
-                                                                        <span className="font-bold text-amber-900 block mb-0.5">កត់ចំណាំ:</span>
-                                                                        <p className="text-amber-800 leading-relaxed">{p.notes}</p>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
-
-                                                        {activeTab === "appointments" && (
-                                                            <div className="space-y-3 pt-1">
-                                                                <div className="flex justify-between items-center">
-                                                                    <h3 className="font-bold text-slate-800 text-xs">បញ្ជីណាត់ជួប</h3>
-                                                                    <button onClick={() => setNewAppModal({ open: true, patientId: p.id, date: getTodayIso(), time: "09:00", note: "" })}
-                                                                        className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer">
-                                                                        <Icons.Plus /> បន្ថែម
-                                                                    </button>
-                                                                </div>
-                                                                {p.appointments.length === 0 ? (
-                                                                    <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                                                        មិនទាន់មានការណាត់ជួបនៅឡើយ
-                                                                    </div>
-                                                                ) : p.appointments.map(a => (
-                                                                    <div key={a.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
-                                                                        <div>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="font-bold text-slate-800 text-xs">{formatDate(a.date)} ម៉ោង {a.time}</span>
-                                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.status === 'រួចរាល់' ? 'bg-emerald-100 text-emerald-800' : a.status === 'លុបចោល' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
-                                                                                    {a.status}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-xs text-slate-500 mt-1">{a.note}</p>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1">
-                                                                            {a.status === 'កំពុងរង់ចាំ' && (
-                                                                                <button onClick={() => handleToggleAppointmentStatus(p.id, a.id, "រួចរាល់")}
-                                                                                    className="px-2.5 py-1 bg-emerald-600 text-white text-[11px] font-bold rounded-lg hover:bg-emerald-700 cursor-pointer">រួចរាល់</button>
-                                                                            )}
-                                                                            <button onClick={() => setConfirmDeleteModal({ open: true, type: "APPOINTMENT", targetId: a.id, title: "លុបការណាត់ជួប", text: "តើអ្នកពិតជាចង់លុបការណាត់ជួបនេះមែនទេ?" })}
-                                                                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-200 cursor-pointer">
-                                                                                <Icons.Trash />
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-
-                                                        {activeTab === "payments" && (
-                                                            <div className="space-y-3 pt-1">
-                                                                <div className="flex justify-between items-center">
-                                                                    <h3 className="font-bold text-slate-800 text-xs">ប្រវត្តិបង់ប្រាក់</h3>
-                                                                    <button onClick={() => setPaymentModal({ open: true, patient: p, amount: "", note: "" })}
-                                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer">
-                                                                        <Icons.Dollar /> បង់បន្ថែម
-                                                                    </button>
-                                                                </div>
-                                                                {p.payments.length === 0 ? (
-                                                                    <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                                                        មិនទាន់មានប្រវត្តិទូទាត់
-                                                                    </div>
-                                                                ) : p.payments.map(pm => (
-                                                                    <div key={pm.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                                                                        <div>
-                                                                            <span className="font-bold text-emerald-800 text-xs block">{formatMoney(pm.amount)}</span>
-                                                                            <span className="text-[11px] text-slate-500">{formatDate(pm.date)} • {pm.note}</span>
-                                                                        </div>
-                                                                        <button onClick={() => setConfirmDeleteModal({ open: true, type: "PAYMENT", targetId: pm.id, title: "លុបការទូទាត់", text: "តើអ្នកពិតជាចង់លុបទិន្នន័យទូទាត់នេះមែនទេ?" })}
-                                                                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-200 cursor-pointer">
-                                                                            <Icons.Trash />
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                              </div>
+                            ))}
+                          </div>
                         )}
 
-                        {currentView === "appointments" && (
-                            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div>
-                                        <h2 className="font-bold text-slate-800 text-base">តារាងណាត់ជួបទាំងអស់</h2>
-                                        <p className="text-xs text-slate-500">គ្រប់គ្រងការណាត់ជួបព្យាបាល</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <input type="date" value={selectedFilterDate} onChange={(e) => setSelectedFilterDate(e.target.value)}
-                                            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-teal-500 cursor-pointer" />
-                                        {selectedFilterDate && (
-                                            <button onClick={() => setSelectedFilterDate("")} className="text-xs text-teal-700 font-bold hover:underline cursor-pointer">បង្ហាញទាំងអស់</button>
-                                        )}
-                                    </div>
-                                </div>
-                                {(() => {
-                                    const allAppointments = patients.flatMap(p =>
-                                        (p.appointments || []).map(ap => ({ ...ap, patientId: p.id, patientName: p.name, patientPhone: p.phone }))
-                                    ).filter(ap => !selectedFilterDate || ap.date === selectedFilterDate);
-                                    return (
-                                        <div className="space-y-2 pt-2">
-                                            {allAppointments.length === 0 ? (
-                                                <div className="text-center py-10 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                                    មិនមានការណាត់ជួប
-                                                </div>
-                                            ) : allAppointments.map(ap => (
-                                                <div key={ap.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <span className="font-bold text-slate-900 text-sm">{ap.patientName}</span>
-                                                            <span className="text-xs text-slate-500">({ap.patientPhone})</span>
-                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ap.status === 'រួចរាល់' ? 'bg-emerald-100 text-emerald-800' : ap.status === 'លុបចោល' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
-                                                                {ap.status}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-teal-700 font-semibold mt-1">
-                                                            {formatDate(ap.date)} ម៉ោង {ap.time} • {ap.note}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {ap.status === 'កំពុងរង់ចាំ' && (
-                                                            <button onClick={() => handleToggleAppointmentStatus(ap.patientId, ap.id, "រួចរាល់")}
-                                                                className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 cursor-pointer shadow-xs">រួចរាល់</button>
-                                                        )}
-                                                        <button onClick={() => { setSelectedPatientId(ap.patientId); setCurrentView("patients"); }}
-                                                            className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-100 cursor-pointer shadow-xs">
-                                                            មើលអ្នកជំងឺ
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    );
-                                })()}
+                        {activeTab==="payments" && (
+                          <div className="space-y-3 pt-1">
+                            <div className="flex justify-between items-center">
+                              <h3 className="font-bold text-slate-800 text-xs">ប្រវត្តិបង់ប្រាក់</h3>
+                              <button onClick={()=>setPaymentModal({open:true,patient:p,amount:"",note:""})} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1"><Icons.Dollar/> បង់បន្ថែម</button>
                             </div>
+                            {p.payments.length===0 ? (
+                              <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">មិនទាន់មានប្រវត្តិទូទាត់</div>
+                            ) : p.payments.map(pm=>(
+                              <div key={pm.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                <div>
+                                  <span className="font-bold text-emerald-800 text-xs block">{formatMoney(pm.amount)}</span>
+                                  <span className="text-[11px] text-slate-500">{formatDate(pm.date)} • {pm.note}</span>
+                                </div>
+                                <button onClick={()=>setConfirmDeleteModal({open:true,type:"PAYMENT",targetId:pm.id,title:"លុបទូទាត់",text:"តើអ្នកចង់លុបទូទាត់នេះមែនទេ?"})} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-200 cursor-pointer"><Icons.Trash/></button>
+                              </div>
+                            ))}
+                          </div>
                         )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                        {currentView === "services" && (
-                            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <h2 className="font-bold text-slate-800 text-base">កាតាឡុកសេវាកម្ម និងតម្លៃ</h2>
-                                        <p className="text-xs text-slate-500">កំណត់សេវាកម្ម និងតម្លៃកំណត់ជាមុន</p>
-                                    </div>
-                                    <button onClick={() => { setEditingService(null); setServiceForm({ name: "", price: "" }); setIsServiceModalOpen(true); }}
-                                        className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1 cursor-pointer">
-                                        <Icons.Plus /> បន្ថែមសេវាកម្ម
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                                    {presetServices.map((s) => (
-                                        <div key={s.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                                            <div>
-                                                <span className="font-bold text-slate-800 text-xs block">{s.name}</span>
-                                                <span className="font-bold text-teal-700 text-sm">{formatMoney(s.price)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => { setEditingService(s); setServiceForm({ name: s.name, price: s.price.toString() }); setIsServiceModalOpen(true); }}
-                                                    className="p-2 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-slate-200 cursor-pointer">
-                                                    <Icons.Edit />
-                                                </button>
-                                                <button onClick={() => setConfirmDeleteModal({ open: true, type: "SERVICE", targetId: s.id, title: "លុបសេវាកម្ម", text: `តើអ្នកពិតជាចង់លុបសេវាកម្ម "${s.name}" មែនទេ?` })}
-                                                    className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-slate-200 cursor-pointer">
-                                                    <Icons.Trash />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+        {/* ============ APPOINTMENTS VIEW ============ */}
+        {currentView==="appointments" && (
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-slate-800 text-base">តារាងណាត់ជួបទាំងអស់</h2>
+                <p className="text-xs text-slate-500">គ្រប់គ្រងការណាត់ជួបព្យាបាល</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="date" value={selectedFilterDate} onChange={e=>setSelectedFilterDate(e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-teal-500 cursor-pointer"/>
+                {selectedFilterDate && <button onClick={()=>setSelectedFilterDate("")} className="text-xs text-teal-700 font-bold hover:underline cursor-pointer">បង្ហាញទាំងអស់</button>}
+              </div>
+            </div>
+            {(()=>{
+              const all=patients.flatMap(p=>(p.appointments||[]).map(a=>({...a,patientId:p.id,patientName:p.name,patientPhone:p.phone}))).filter(a=>!selectedFilterDate||a.date===selectedFilterDate);
+              return (
+                <div className="space-y-2 pt-2">
+                  {all.length===0 ? (
+                    <div className="text-center py-10 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">មិនមានការណាត់ជួប</div>
+                  ) : all.map(a=>(
+                    <div key={a.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-900 text-sm">{a.patientName}</span>
+                          <span className="text-xs text-slate-500">({a.patientPhone})</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.status==='រួចរាល់'?'bg-emerald-100 text-emerald-800':a.status==='លុបចោល'?'bg-rose-100 text-rose-800':'bg-amber-100 text-amber-800'}`}>{a.status}</span>
+                        </div>
+                        <p className="text-xs text-teal-700 font-semibold mt-1">{formatDate(a.date)} ម៉ោង {a.time} • {a.note}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {a.status==='កំពុងរង់ចាំ' && (
+                          <button onClick={()=>handleToggleAppointmentStatus(a.patientId,a.id,"រួចរាល់")} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 cursor-pointer shadow-xs">រួចរាល់</button>
                         )}
-
-                        {/* ============ REPORTS VIEW (from Code 2) ============ */}
-                        {currentView === "reports" && (
-                            <ReportsView
-                                patients={patients}
-                                clinicInfo={clinicInfo}
-                            />
-                        )}
-                    </main>
-
-                    {/* ===================== MODALS ===================== */}
-                    {isRegisterOpen && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print">
-                            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
-                                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                                    <h3 className="font-bold text-slate-800 text-base">
-                                        {editingPatient ? 'កែប្រែព័ត៌មានអ្នកជំងឺ' : 'ចុះឈ្មោះអ្នកជំងឺថ្មី'}
-                                    </h3>
-                                    <button onClick={() => setIsRegisterOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer">✕</button>
-                                </div>
-
-                                <form onSubmit={handleSavePatientSubmit} className="space-y-4 text-xs">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block font-semibold text-slate-700 mb-1">ឈ្មោះអ្នកជំងឺ *</label>
-                                            <input type="text" required placeholder="ឧ. សុក សុភា" value={patientForm.name}
-                                                onChange={e => setPatientForm({...patientForm, name: e.target.value})}
-                                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                        </div>
-                                        <div>
-                                            <label className="block font-semibold text-slate-700 mb-1">លេខទូរស័ព្ទ *</label>
-                                            <input type="text" required placeholder="ឧ. 012 345 678" value={patientForm.phone}
-                                                onChange={e => setPatientForm({...patientForm, phone: e.target.value})}
-                                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                        </div>
-                                        <div>
-                                            <label className="block font-semibold text-slate-700 mb-1">ភេទ</label>
-                                            <select value={patientForm.gender} onChange={e => setPatientForm({...patientForm, gender: e.target.value})}
-                                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500">
-                                                <option value="ស្រី">ស្រី</option>
-                                                <option value="ប្រុស">ប្រុស</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block font-semibold text-slate-700 mb-1">អាយុ</label>
-                                            <input type="number" placeholder="ឧ. 25" value={patientForm.age}
-                                                onChange={e => setPatientForm({...patientForm, age: e.target.value})}
-                                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3 pt-2">
-                                        <div className="flex justify-between items-center">
-                                            <label className="block font-bold text-slate-800 text-xs">ជ្រើសរើសសេវាកម្ម</label>
-                                            <button type="button"
-                                                onClick={() => setPatientForm({ ...patientForm, services: [...patientForm.services, { id: `s-${Date.now()}`, name: "", teeth: [], price: "" }] })}
-                                                className="text-teal-700 font-bold hover:underline text-[11px] cursor-pointer">
-                                                + បន្ថែមសេវាកម្ម
-                                            </button>
-                                        </div>
-                                        {patientForm.services.map((serv, index) => (
-                                            <div key={serv.id || index} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                                                <div className="flex gap-2 items-center">
-                                                    <select value={serv.name}
-                                                        onChange={(e) => {
-                                                            const preset = presetServices.find(p => p.name === e.target.value);
-                                                            const updated = [...patientForm.services];
-                                                            updated[index].name = e.target.value;
-                                                            if (preset) updated[index].price = preset.price;
-                                                            setPatientForm({...patientForm, services: updated});
-                                                        }}
-                                                        className="flex-1 p-2.5 border border-slate-200 rounded-xl bg-white text-xs font-medium">
-                                                        <option value="">-- ជ្រើសរើសសេវា --</option>
-                                                        {presetServices.map(ps => <option key={ps.id} value={ps.name}>{ps.name} (${ps.price})</option>)}
-                                                    </select>
-                                                    <input type="number" placeholder="តម្លៃ ($)" value={serv.price}
-                                                        onChange={(e) => {
-                                                            const updated = [...patientForm.services];
-                                                            updated[index].price = e.target.value;
-                                                            setPatientForm({...patientForm, services: updated});
-                                                        }}
-                                                        className="w-24 p-2.5 border border-slate-200 rounded-xl bg-white text-xs font-bold" />
-                                                    {patientForm.services.length > 1 && (
-                                                        <button type="button"
-                                                            onClick={() => setPatientForm({...patientForm, services: patientForm.services.filter((_, i) => i !== index)})}
-                                                            className="text-red-500 hover:text-red-700 p-1 cursor-pointer">
-                                                            <Icons.Trash />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <ToothSelector selectedTeeth={serv.teeth || []}
-                                                    onToggleTooth={(tNum) => {
-                                                        const updated = [...patientForm.services];
-                                                        const curr = updated[index].teeth || [];
-                                                        updated[index].teeth = curr.includes(tNum) ? curr.filter(x => x !== tNum) : [...curr, tNum];
-                                                        setPatientForm({...patientForm, services: updated});
-                                                    }} />
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {!editingPatient && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                                            <div>
-                                                <label className="block font-semibold text-slate-700 mb-1">ប្រាក់កក់ដំបូង ($)</label>
-                                                <input type="number" placeholder="0.00" value={patientForm.deposit}
-                                                    onChange={e => setPatientForm({...patientForm, deposit: e.target.value})}
-                                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500 font-semibold text-emerald-700" />
-                                            </div>
-                                            <div>
-                                                <label className="block font-semibold text-slate-700 mb-1">កាលបរិច្ឆេទណាត់ជួបដំបូង</label>
-                                                <input type="date" value={patientForm.firstAppDate}
-                                                    onChange={e => setPatientForm({...patientForm, firstAppDate: e.target.value})}
-                                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">ចំណាំបន្ថែម</label>
-                                        <textarea rows="2" placeholder="រៀបរាប់ពីអាការៈ..." value={patientForm.notes}
-                                            onChange={e => setPatientForm({...patientForm, notes: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500"></textarea>
-                                    </div>
-
-                                    <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                                        <button type="button" onClick={() => setIsRegisterOpen(false)}
-                                            className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 cursor-pointer">បោះបង់</button>
-                                        <button type="submit"
-                                            className="px-5 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 shadow-sm cursor-pointer">
-                                            {editingPatient ? 'រក្សាទុកការកែប្រែ' : 'រក្សាទុកអ្នកជំងឺ'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {paymentModal.open && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 no-print">
-                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-                                <h3 className="font-bold text-slate-800 text-base">កត់ត្រាការទូទាត់</h3>
-                                <p className="text-xs text-slate-500">អ្នកជំងឺ: <span className="font-bold text-slate-800">{paymentModal.patient?.name}</span></p>
-                                <div className="space-y-3 text-xs">
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">ចំនួនប្រាក់បង់ ($) *</label>
-                                        <input type="number" placeholder="0.00" value={paymentModal.amount}
-                                            onChange={e => setPaymentModal({...paymentModal, amount: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700 text-sm focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">កត់ចំណាំ</label>
-                                        <input type="text" placeholder="ឧ. បង់សាច់ប្រាក់" value={paymentModal.note}
-                                            onChange={e => setPaymentModal({...paymentModal, note: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button onClick={() => setPaymentModal({ open: false, patient: null, amount: "", note: "" })}
-                                        className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 text-xs cursor-pointer">បោះបង់</button>
-                                    <button onClick={handleAddPayment}
-                                        className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 text-xs shadow-sm cursor-pointer">រក្សាទុក</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {newAppModal.open && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 no-print">
-                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-                                <h3 className="font-bold text-slate-800 text-base">បន្ថែមការណាត់ជួបថ្មី</h3>
-                                <div className="space-y-3 text-xs">
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">កាលបរិច្ឆេទ</label>
-                                        <input type="date" value={newAppModal.date}
-                                            onChange={e => setNewAppModal({...newAppModal, date: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">ម៉ោង</label>
-                                        <input type="time" value={newAppModal.time}
-                                            onChange={e => setNewAppModal({...newAppModal, time: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">ចំណាំ</label>
-                                        <input type="text" placeholder="ឧ. ពិនិត្យដានដែក" value={newAppModal.note}
-                                            onChange={e => setNewAppModal({...newAppModal, note: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button onClick={() => setNewAppModal({ open: false, patientId: "", date: getTodayIso(), time: "09:00", note: "" })}
-                                        className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 cursor-pointer">បោះបង់</button>
-                                    <button onClick={handleAddAppointment}
-                                        className="px-5 py-2 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 shadow-sm cursor-pointer">រក្សាទុក</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {isServiceModalOpen && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 no-print">
-                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-                                <h3 className="font-bold text-slate-800 text-base">
-                                    {editingService ? 'កែប្រែសេវាកម្ម' : 'បន្ថែមសេវាកម្មថ្មី'}
-                                </h3>
-                                <form onSubmit={handleSaveServiceCatalog} className="space-y-3 text-xs">
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">ឈ្មោះសេវាកម្ម *</label>
-                                        <input type="text" required placeholder="ឧ. ពិនិត្យសុខភាពធ្មេញ" value={serviceForm.name}
-                                            onChange={e => setServiceForm({...serviceForm, name: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">តម្លៃ ($) *</label>
-                                        <input type="number" required placeholder="0.00" value={serviceForm.price}
-                                            onChange={e => setServiceForm({...serviceForm, price: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500 font-bold text-teal-800" />
-                                    </div>
-                                    <div className="flex justify-end gap-2 pt-3">
-                                        <button type="button" onClick={() => setIsServiceModalOpen(false)}
-                                            className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 cursor-pointer">បោះបង់</button>
-                                        <button type="submit"
-                                            className="px-5 py-2 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 shadow-sm cursor-pointer">រក្សាទុក</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {isClinicModalOpen && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 no-print">
-                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-                                <h3 className="font-bold text-slate-800 text-base">ការកំណត់ព័ត៌មានគ្លីនិក</h3>
-                                <div className="space-y-3 text-xs">
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">ឈ្មោះគ្លីនិក</label>
-                                        <input type="text" value={clinicInfo.name}
-                                            onChange={e => setClinicInfo({...clinicInfo, name: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">Subtitle</label>
-                                        <input type="text" value={clinicInfo.subtitle}
-                                            onChange={e => setClinicInfo({...clinicInfo, subtitle: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">លេខទូរស័ព្ទ</label>
-                                        <input type="text" value={clinicInfo.phone}
-                                            onChange={e => setClinicInfo({...clinicInfo, phone: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">អាសយដ្ឋាន</label>
-                                        <input type="text" value={clinicInfo.address}
-                                            onChange={e => setClinicInfo({...clinicInfo, address: e.target.value})}
-                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500" />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button onClick={() => setIsClinicModalOpen(false)}
-                                        className="px-5 py-2 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 shadow-sm cursor-pointer">រក្សាទុក</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {confirmDeleteModal.open && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
-                            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-                                <h3 className="font-bold text-red-600 text-base">{confirmDeleteModal.title}</h3>
-                                <p className="text-xs text-slate-600 leading-relaxed">{confirmDeleteModal.text}</p>
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button onClick={() => setConfirmDeleteModal({ open: false, type: "", targetId: "", title: "", text: "" })}
-                                        className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 cursor-pointer">បោះបង់</button>
-                                    <button onClick={confirmExecuteDelete}
-                                        className="px-5 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 shadow-sm cursor-pointer">យល់ព្រមលុប</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {posPatientModal && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 no-print">
-                                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                    <h3 className="font-bold text-slate-800 text-sm">មើលគំរូវិក្កយបត្រ POS (80mm)</h3>
-                                    <button onClick={() => setPosPatientModal(null)} className="text-slate-400 font-bold cursor-pointer">✕</button>
-                                </div>
-
-                                <div className="border border-slate-200 p-4 rounded-xl bg-slate-50 text-[11px] font-mono space-y-2">
-                                    <div className="text-center">
-                                        <p className="font-bold text-xs text-slate-900">{clinicInfo.name}</p>
-                                        <p className="text-[10px] text-slate-500">{clinicInfo.address}</p>
-                                        <p className="text-[10px] text-slate-500">ទូរស័ព្ទ: {clinicInfo.phone}</p>
-                                        <p className="font-bold border-b border-dashed border-slate-300 py-1 my-1">វិក្កយបត្រ / RECEIPT</p>
-                                    </div>
-                                    <div className="space-y-0.5 text-slate-700">
-                                        <p>អតិថិជន: <span className="font-bold">{posPatientModal.name}</span> ({posPatientModal.id})</p>
-                                        <p>ទូរស័ព្ទ: {posPatientModal.phone}</p>
-                                        <p>កាលបរិច្ឆេទ: {getTodayIso()}</p>
-                                    </div>
-                                    <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1">
-                                        {posPatientModal.services.map((s, idx) => (
-                                            <div key={idx} className="flex justify-between">
-                                                <div>
-                                                    <p className="font-bold text-slate-800">{s.name}</p>
-                                                    <p className="text-[9px] text-slate-500">ធ្មេញ: {s.teeth.join(', ') || 'ទូទៅ'}</p>
-                                                </div>
-                                                <span className="font-bold">{formatMoney(s.price)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {(() => {
-                                        const tot = posPatientModal.services.reduce((a,b)=>a+b.price, 0);
-                                        const paid = posPatientModal.payments.reduce((a,b)=>a+b.amount, 0);
-                                        const bal = tot - paid;
-                                        return (
-                                            <div className="space-y-1 text-slate-800 pt-1">
-                                                <div className="flex justify-between font-bold"><span>សរុប:</span><span>{formatMoney(tot)}</span></div>
-                                                <div className="flex justify-between text-emerald-700 font-bold"><span>បានទូទាត់:</span><span>{formatMoney(paid)}</span></div>
-                                                <div className="flex justify-between text-amber-800 font-bold border-t border-slate-200 pt-1"><span>នៅខ្វះ:</span><span>{formatMoney(bal)}</span></div>
-                                            </div>
-                                        );
-                                    })()}
-                                    <p className="text-center text-[10px] text-slate-500 pt-3 italic">{clinicInfo.footerNote}</p>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <button onClick={() => setPosPatientModal(null)}
-                                        className="flex-1 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer">បិទ</button>
-                                    <button onClick={() => window.print()}
-                                        className="flex-1 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 shadow-sm flex items-center justify-center gap-1 cursor-pointer">
-                                        <Icons.Printer /> បោះពុម្ព
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="hidden pos-printable-area">
-                                <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                                    <h2 style={{ fontSize: '13px', fontWeight: 'bold' }}>{clinicInfo.name}</h2>
-                                    <p style={{ fontSize: '10px' }}>{clinicInfo.address}</p>
-                                    <p style={{ fontSize: '10px' }}>ទូរស័ព្ទ: {clinicInfo.phone}</p>
-                                    <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
-                                    <h3 style={{ fontSize: '11px', fontWeight: 'bold' }}>វិក្កយបត្រ / RECEIPT</h3>
-                                </div>
-                                <div style={{ fontSize: '10px', marginBottom: '8px' }}>
-                                    <p>អ្នកជំងឺ: <strong>{posPatientModal.name}</strong></p>
-                                    <p>ទូរស័ព្ទ: {posPatientModal.phone}</p>
-                                    <p>កាលបរិច្ឆេទ: {getTodayIso()}</p>
-                                </div>
-                                <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '4px 0', marginBottom: '8px' }}>
-                                    {posPatientModal.services.map((s, i) => (
-                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '3px' }}>
-                                            <span>{s.name} ({s.teeth.join(',') || 'ទូទៅ'})</span>
-                                            <span style={{ fontWeight: 'bold' }}>${s.price}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                {(() => {
-                                    const tot = posPatientModal.services.reduce((a,b)=>a+b.price, 0);
-                                    const paid = posPatientModal.payments.reduce((a,b)=>a+b.amount, 0);
-                                    const bal = tot - paid;
-                                    return (
-                                        <div style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>សរុប:</span><strong>${tot}</strong></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>បានបង់:</span><strong>${paid}</strong></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #000', paddingTop: '2px' }}><span>នៅខ្វះ:</span><strong>${bal}</strong></div>
-                                        </div>
-                                    );
-                                })()}
-                                <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '9px' }}>
-                                    <p>{clinicInfo.footerNote}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Floating Sparkle (from Code 2) */}
-                    <div className="fixed bottom-6 right-6 z-40 no-print">
-                        <button onClick={() => setCurrentView("reports")}
-                            className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer hover:scale-105 transition"
-                            title="ទៅកាន់របាយការណ៍">
-                            <span className="text-yellow-400 animate-pulse"><Icons.Sparkles /></span>
-                        </button>
+                        <button onClick={()=>{setSelectedPatientId(a.patientId);setCurrentView("patients");}} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-100 cursor-pointer shadow-xs">មើលអ្នកជំងឺ</button>
+                      </div>
                     </div>
+                  ))}
                 </div>
-            );
-        }
+              );
+            })()}
+          </div>
+        )}
 
-        /* ===================== ERROR BOUNDARY ===================== */
-        class ErrorBoundary extends Component {
-            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-            static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            componentDidCatch(error, info) { console.error("React Error:", error, info); }
-            render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="p-6 max-w-lg mx-auto my-10 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-xs space-y-2">
-                            <h3 className="font-bold text-sm">មានបញ្ហាក្នុងការដំណើរការកម្មវិធី</h3>
-                            <p>{this.state.error?.toString()}</p>
-                            <button onClick={() => { localStorage.clear(); window.location.reload(); }}
-                                className="mt-2 px-3 py-1 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 cursor-pointer">
-                                រៀបចំឡើងវិញ (Reset Storage)
-                            </button>
-                        </div>
-                    );
-                }
-                return this.props.children;
-            }
-        }
+        {/* ============ SERVICES VIEW ============ */}
+        {currentView==="services" && (
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="font-bold text-slate-800 text-base">កាតាឡុកសេវាកម្ម</h2>
+                <p className="text-xs text-slate-500">កំណត់សេវាកម្ម និងតម្លៃ</p>
+              </div>
+              <button onClick={()=>{setEditingService(null);setServiceForm({name:"",price:""});setIsServiceModalOpen(true);}} className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1"><Icons.Plus/> បន្ថែមសេវាកម្ម</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              {presetServices.map(s=>(
+                <div key={s.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 text-xs block">{s.name}</span>
+                    <span className="font-bold text-teal-700 text-sm">{formatMoney(s.price)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={()=>{setEditingService(s);setServiceForm({name:s.name,price:s.price.toString()});setIsServiceModalOpen(true);}} className="p-2 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-slate-200 cursor-pointer"><Icons.Edit/></button>
+                    <button onClick={()=>setConfirmDeleteModal({open:true,type:"SERVICE",targetId:s.id,title:"លុបសេវាកម្ម",text:`តើអ្នកចង់លុបសេវាកម្ម "${s.name}" មែនទេ?`})} className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-slate-200 cursor-pointer"><Icons.Trash/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<ErrorBoundary><App /></ErrorBoundary>);
-    </script>
-</body>
-</html>
+        {/* ============ REPORTS VIEW (កូដទី២) ============ */}
+        {currentView==="reports" && (
+          <ReportsView patients={patients} clinicInfo={clinicInfo}/>
+        )}
+      </main>
+
+      {/* ============ MODALS ============ */}
+      {isRegisterOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-800 text-base">{editingPatient?'កែប្រែព័ត៌មាន':'ចុះឈ្មោះអ្នកជំងឺថ្មី'}</h3>
+              <button onClick={()=>setIsRegisterOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer">✕</button>
+            </div>
+            <form onSubmit={handleSavePatientSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">ឈ្មោះ *</label>
+                  <input type="text" required placeholder="ឧ. សុក សុភា" value={patientForm.name} onChange={e=>setPatientForm({...patientForm,name:e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500"/>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">ទូរស័ព្ទ *</label>
+                  <input type="text" required placeholder="ឧ. 012 345 678" value={patientForm.phone} onChange={e=>setPatientForm({...patientForm,phone:e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500"/>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">ភេទ</label>
+                  <select value={patientForm.gender} onChange={e=>setPatientForm({...patientForm,gender:e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="ស្រី">ស្រី</option><option value="ប្រុស">ប្រុស</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">អាយុ</label>
+                  <input type="number" placeholder="25" value={patientForm.age} onChange={e=>setPatientForm({...patientForm,age:e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500"/>
+                </div>
+              </div>
+              <div className="space-y-3 pt-2">
+                <div className="flex justify-between items-center">
+                  <label className="block font-bold text-slate-800 text-xs">សេវាកម្មព្យាបាល</label>
+                  <button type="button" onClick={()=>setPatientForm({...patientForm,services:[...patientForm.services,{id:`s-${Date.now()}`,name:"",teeth:[],price:""}]})} className="text-teal-700 font-bold hover:underline text-[11px] cursor-pointer">+ បន្ថែម</button>
+                </div>
+                {patientForm.services.map((serv,idx)=>(
+                  <div key={serv.id||idx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <div className="flex gap-2 items-center">
+                      <select value={serv.name} onChange={e=>{const preset=presetServices.find(p=>p.name===e.target.value);const u=[...patientForm.services];u[idx].name=e.target.value;if(preset)u[idx].price=preset.price;setPatientForm({...patientForm,services:u});}} className="flex-1 p-2.5 border border-slate-200 rounded-xl bg-white text-xs font-medium">
+                        <option value="">-- ជ្រើសរើស --</option>
+                        {presetServices.map(ps=><option key={ps.id} value={ps.name}>{ps.name} (${ps.price})</option>)}
+                      </select>
+                      <input type="number" placeholder="តម្លៃ ($)" value={serv.price} onChange={e=>{const u=[...patientForm.services];u[idx].price=e.target.value;setPatientForm({...patientForm,services:u});}} className="w-24 p-2.5 border border-slate-200 rounded-xl bg-white text-xs font-bold"/>
+                      {patientForm.services.length>1 && (
+                        <button type="button" onClick={()=>setPatientForm({...patientForm,services:patientForm.services.filter((_,i)=>i!==idx)})} className="text-red-500 hover:text-red-700 p-1 cursor-pointer"><Icons.Trash/></button>
+                      )}
+                    </div>
+                    <ToothSelector selectedTeeth={serv.teeth||[]} onToggleTooth={tNum=>{const u=[...patientForm.services];const c=u[idx].teeth||[];u[idx].teeth=c.includes(tNum)?c.filter(x=>x!==tNum):[...c,tNum];setPatientForm({...patientForm,services:u});}}/>
+                  </div>
+                ))}
+              </div>
+              {!editingPatient && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">ប្រាក់កក់ ($)</label>
+                    <input type="number" placeholder="0.00" value={patientForm.deposit} onChange={e=>setPatientForm({...patientForm,deposit:e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-emerald-700"/>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">ណាត់ជួបដំបូង</label>
+                    <input type="date" value={patientForm.firstAppDate} onChange={e=>setPatientForm({...patientForm,firstAppDate:e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"/>
+                  </div>
+                </div>
+              )}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">ចំណាំ</label>
+                <textarea rows="2" value={patientForm.notes} onChange={e=>setPatientForm({...patientForm,notes:e
+                                                                                          
