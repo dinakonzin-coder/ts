@@ -91,6 +91,38 @@ function ToothSel({selected=[],onToggle}){
   </div>
  </div>)}
 
+/* ===== INLINE EDITABLE NOTES ===== */
+function InlineNotes({patient,onSave}){
+ const [editing,setEditing]=useState(false);
+ const [text,setText]=useState(patient.notes||"");
+ useEffect(()=>{setText(patient.notes||"");setEditing(false)},[patient.id]);
+
+ if(editing){
+  return(<div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl space-y-2 fade">
+   <span className="font-bold text-amber-900 block text-[10px]">កត់ចំណាំ:</span>
+   <textarea autoFocus rows="3" value={text} onChange={e=>setText(e.target.value)}
+    placeholder="វាយបញ្ចូលចំណាំ..."
+    className="w-full p-2 bg-white border border-amber-200 rounded-lg text-[11px] text-amber-900 focus:outline-none focus:border-amber-500 resize-none"/>
+   <div className="flex gap-2">
+    <button type="button" onClick={()=>{setText(patient.notes||"");setEditing(false)}}
+     className="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold cursor-pointer">បោះបង់</button>
+    <button type="button" onClick={()=>{onSave(text);setEditing(false)}}
+     className="flex-1 py-1.5 rounded-lg bg-amber-600 text-white text-[10px] font-bold cursor-pointer">រក្សាទុក</button>
+   </div>
+  </div>);
+ }
+
+ return(<div onClick={()=>setEditing(true)}
+  className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] cursor-pointer hover:bg-amber-100/70 transition">
+  <div className="flex justify-between items-start gap-2">
+   <div className="min-w-0 flex-1">
+    <span className="font-bold text-amber-900 block text-[10px] mb-0.5">កត់ចំណាំ:</span>
+    <span className="text-amber-800 whitespace-pre-wrap break-words">{patient.notes||<span className="italic text-amber-600/70">ចុចដើម្បីបន្ថែមចំណាំ...</span>}</span>
+   </div>
+   <span className="text-amber-500 flex-shrink-0 mt-0.5"><Ic.Edit/></span>
+  </div>
+ </div>)}
+
 /* ===== REPORTS VIEW ===== */
 function ReportsView({patients,clinic}){
  const now=new Date(),cy=now.getFullYear(),cm=now.getMonth(),cd=now.toISOString().split('T')[0];
@@ -115,6 +147,11 @@ function ReportsView({patients,clinic}){
  const newBill=newPs.reduce((s,p)=>s+(p.services||[]).reduce((ss,sv)=>ss+sv.price,0),0);
  const avg=pays.length>0?totRev/pays.length:0;
 
+ const paidNewPs=newPs.reduce((s,p)=>s+(p.payments||[]).reduce((ss,pm)=>ss+pm.amount,0),0);
+ const depositTotal=totRev;
+ const grandTotal=newBill;
+ const remaining=Math.max(0,grandTotal-paidNewPs);
+
  const title=type==='daily'?'របាយការណ៍បូកសរុបប្រចាំថ្ងៃ':'របាយការណ៍បូកសរុបប្រចាំខែ';
  const sub=type==='daily'?'តាមការចំណូល ចំនួនអ្នកជំងឺ និងការណាត់ជួបប្រចាំថ្ងៃ':'តាមការចំណូល ចំនួនអ្នកជំងឺ និងការណាត់ជួបប្រចាំខែ';
  const per=type==='daily'?`កាលបរិច្ឆេទ: ${selD}`:`ខែ: ${selM}`;
@@ -125,6 +162,9 @@ function ReportsView({patients,clinic}){
   w.document.write(`<html><head><title>POS</title><style>body{font-family:'Courier New',monospace;width:300px;margin:0 auto;padding:10px}.c{text-align:center}.b{font-weight:bold}.l{border-bottom:1px dashed #000;margin:8px 0}.f{display:flex;justify-content:space-between}.s{font-size:11px}</style></head><body>
   <div class="c b" style="font-size:14px">${clinic.name}</div><div class="c s">${clinic.subtitle}</div><div class="l"></div>
   <div class="c b">${title}</div><div class="c s">${per}</div><div class="l"></div>
+  <div class="f"><span>ប្រាក់សរុប:</span><span class="b">${M(grandTotal)}</span></div>
+  <div class="f"><span>ប្រាក់កក់:</span><span class="b">${M(paidNewPs)}</span></div>
+  <div class="f"><span>ប្រាក់ខ្វះ:</span><span class="b">${M(remaining)}</span></div><div class="l"></div>
   <div class="f"><span>ចំណូលសរុប:</span><span class="b">${M(totRev)}</span></div><div class="s">ប្រតិបត្តិការ: ${pays.length} លើក</div>
   <div class="f"><span>អ្នកជំងឺថ្មី:</span><span class="b">${newPs.length} នាក់</span></div><div class="s">ថ្លៃសេវា: ${M(newBill)}</div>
   <div class="f"><span>ណាត់ជួប:</span><span class="b">${apps.length} ដង</span></div><div class="s">រួចរាល់: ${done.length} ដង</div>
@@ -160,10 +200,23 @@ function ReportsView({patients,clinic}){
    </div>
   </div>
 
-  <div className="bg-emerald-600 text-white rounded-2xl p-5 shadow-sm space-y-1">
-   <p className="text-xs font-medium text-emerald-100">ប្រាក់ចំណូលទទួលបានសរុប</p>
-   <div className="text-3xl font-extrabold">{M(totRev)}</div>
-   <div className="border-t border-emerald-500/50 pt-2 text-xs text-emerald-100 mt-2">ប្រតិបត្តិការបង់ប្រាក់: {pays.length} លើក</div>
+  {/* ===== 3 BOXES ===== */}
+  <div className="grid grid-cols-3 gap-2">
+   <div className="bg-slate-800 text-white rounded-2xl p-3 shadow-sm space-y-1">
+    <p className="text-[10px] font-medium text-slate-300 leading-tight">ប្រាក់សរុប</p>
+    <div className="text-base font-extrabold break-all">{M(grandTotal)}</div>
+    <p className="text-[9px] text-slate-400 border-t border-slate-700 pt-1">អ្នកជំងឺថ្មី: {newPs.length}</p>
+   </div>
+   <div className="bg-emerald-600 text-white rounded-2xl p-3 shadow-sm space-y-1">
+    <p className="text-[10px] font-medium text-emerald-100 leading-tight">ប្រាក់កក់</p>
+    <div className="text-base font-extrabold break-all">{M(depositTotal)}</div>
+    <p className="text-[9px] text-emerald-100 border-t border-emerald-500/50 pt-1">ប្រតិបត្តិការ: {pays.length} លើក</p>
+   </div>
+   <div className={`${remaining > 0 ? 'bg-amber-500' : 'bg-teal-600'} text-white rounded-2xl p-3 shadow-sm space-y-1`}>
+    <p className="text-[10px] font-medium opacity-90 leading-tight">ប្រាក់ខ្វះ</p>
+    <div className="text-base font-extrabold break-all">{M(remaining)}</div>
+    <p className="text-[9px] opacity-90 border-t border-white/20 pt-1">{remaining > 0 ? 'ត្រូវប្រមូល' : 'គ្រប់ហើយ'}</p>
+   </div>
   </div>
 
   <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-1">
@@ -201,7 +254,7 @@ function App(){
  const [clinic,setClinic]=useState(()=>G('c_info',INIT_CLINIC));
  const [services,setServices]=useState(()=>G('c_serv',INIT_SERVICES));
  const [patients,setPatients]=useState(()=>G('c_pat',INIT_PATIENTS));
- const [view,setView]=useState("patients"); /* DEFAULT = patients */
+ const [view,setView]=useState("patients");
  const [search,setSearch]=useState("");
  const [selId,setSelId]=useState(null);
  const [tab,setTab]=useState("overview");
@@ -272,7 +325,6 @@ function App(){
   </button>);
 
  return(<div className="min-h-screen bg-slate-50 pb-20">
-  {/* HEADER */}
   <header className="bg-teal-800 text-white shadow-md sticky top-0 z-30 no-print">
    <div className="max-w-md mx-auto px-4 pt-4">
     <div className="flex items-center justify-between">
@@ -300,7 +352,6 @@ function App(){
    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>{toast}</div>}
 
   <main className="max-w-md mx-auto p-4 space-y-3 no-print">
-   {/* ==== PATIENTS ==== */}
    {view==="patients"&&<>
     <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-2">
      <div className="relative flex-1">
@@ -358,7 +409,11 @@ function App(){
          <div className="min-w-0 flex-1"><p className="font-bold text-slate-800 text-[11px] truncate">{s.name}</p><p className="text-[10px] text-teal-700">ធ្មេញ: {s.teeth&&s.teeth.length>0?s.teeth.slice().sort((a,b)=>a-b).join(', '):'ទូទៅ'}</p></div>
          <span className="font-bold text-slate-900 text-xs ml-2">{M(s.price)}</span>
         </div>)}
-        {p.notes&&<div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px]"><span className="font-bold text-amber-900 block text-[10px] mb-0.5">កត់ចំណាំ:</span><span className="text-amber-800">{p.notes}</span></div>}
+        {/* ===== INLINE NOTES (ចុចដើម្បីកែ) ===== */}
+        <InlineNotes patient={p} onSave={(newNotes)=>{
+         setPatients(patients.map(x=>x.id===p.id?{...x,notes:newNotes}:x));
+         show("បានរក្សាទុកចំណាំ!");
+        }}/>
        </div>}
 
        {tab==="appointments"&&<div className="space-y-2">
@@ -391,7 +446,6 @@ function App(){
      </div>)})}
    </>}
 
-   {/* ==== APPOINTMENTS ==== */}
    {view==="appointments"&&<div className="space-y-3">
     <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-2">
      <input type="date" value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"/>
@@ -413,7 +467,6 @@ function App(){
      </div>);})()}
    </div>}
 
-   {/* ==== SERVICES ==== */}
    {view==="services"&&<div className="space-y-3">
     <button onClick={()=>{setEditServ(null);setServForm({name:"",price:""});setServM(true)}} className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-2xl text-xs font-bold cursor-pointer flex items-center justify-center gap-1 shadow-sm"><Ic.Plus/> បន្ថែមសេវាកម្មថ្មី</button>
     {services.map(s=><div key={s.id} className="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-2">
@@ -425,7 +478,6 @@ function App(){
     </div>)}
    </div>}
 
-   {/* ==== REPORTS ==== */}
    {view==="reports"&&<ReportsView patients={patients} clinic={clinic}/>}
   </main>
 
@@ -606,7 +658,6 @@ function App(){
    </div>
   </div>}
 
-  {/* Floating Sparkle → Reports */}
   <button onClick={()=>setView("reports")} className="fixed bottom-5 right-5 z-40 w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-yellow-400 shadow-lg cursor-pointer no-print"><Ic.Spark/></button>
  </div>);
 }
